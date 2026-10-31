@@ -1,0 +1,9 @@
+-- SQL administrativo: execute no Dashboard/CLI com conexão de migração, nunca no navegador.
+-- Substitua apenas o UUID pelo usuário real já criado e com e-mail confirmado em Auth.
+-- A placeholder inválida evita uma atribuição acidental. Não é seed nem auto-claim.
+begin;
+select private.ag_provision_workspace(
+  '00000000-0000-4000-8000-000000000001'::uuid,
+  'UUID_DO_PROPRIETARIO_CONFIRMADO'::uuid
+);
+commit;

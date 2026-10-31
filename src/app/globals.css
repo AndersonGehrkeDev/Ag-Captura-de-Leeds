@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+  --background: #080d10;
+  --foreground: #f5f7fa;
+  --card: #0d1418;
+  --card-foreground: #f5f7fa;
+  --popover: #141b21;
+  --popover-foreground: #f5f5f5;
+  --primary: #ffcc45;
+  --gold: #d7a52e;
+  --surface-raised: #111a20;
+  --sidebar: #070c0f;
+  --success: #32d287;
+  --success-surface: #0c492e;
+  --warning: #ffb528;
+  --warning-surface: #744b06;
+  --danger: #ff6a61;
+  --danger-surface: #71251e;
+  --primary-foreground: #161106;
+  --secondary: #20282f;
+  --secondary-foreground: #f5f5f5;
+  --muted: #172027;
+  --muted-foreground: #a7b0ba;
+  --accent: #292513;
+  --accent-foreground: #ffdb7d;
+  --destructive: #ff9292;
+  --border: #293238;
+  --input: #414b54;
+  --ring: #ffca45;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { scroll-padding-top: 5rem; }
+  body { @apply bg-background text-foreground font-sans antialiased; margin: 0; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+  a, button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+  input, textarea, select { font-size: 1rem; scroll-margin-block: 5rem; }
+  button, a { touch-action: manipulation; }
+}
+
+.safe-shell {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+.safe-inline {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

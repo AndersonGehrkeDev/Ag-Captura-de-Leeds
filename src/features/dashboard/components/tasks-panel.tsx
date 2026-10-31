@@ -1,0 +1,12 @@
+"use client";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useManagement, MutationNotice } from "@/features/gestao/client";
+import type { WorkspaceTask } from "@/domain/management";
+export function TasksPanel({ workspaceId, userId, manage, tasks, available }: { workspaceId: string; userId: string; manage: boolean; tasks: WorkspaceTask[]; available: boolean }) {
+  const [title, setTitle] = useState(""); const [dueAt, setDueAt] = useState(""); const { run, busy, result } = useManagement(workspaceId);
+  async function create(event: FormEvent) { event.preventDefault(); const saved = await run({ operation: "task_create", title, dueAt: dueAt ? new Date(dueAt).toISOString() : null }); if (saved.ok) { setTitle(""); setDueAt(""); } }
+  return <section className="ag-panel management-section" id="tarefas"><h2>Tarefas do workspace</h2><p>Até 20 tarefas abertas, priorizadas pelo prazo. Tarefas novas são atribuídas a você; nenhuma mensagem é disparada.</p><form onSubmit={create} className="management-form"><label className="field-label">Nova tarefa<input className="ag-input" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={200} required disabled={busy} /></label><label className="field-label">Prazo (horário local)<input className="ag-input" type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} disabled={busy} /></label><Button className="gold-button" disabled={busy || !title.trim()}>Criar tarefa</Button></form><MutationNotice result={result} />
+    {!available ? <p role="alert">Não foi possível consultar tarefas.</p> : !tasks.length ? <p>Nenhuma tarefa aberta. Cadastre um próximo passo comercial.</p> : tasks.map((task) => <article className="management-row" key={task.id}><div><h3>{task.title}</h3><p>{task.due_at ? `Prazo: ${new Date(task.due_at).toLocaleString("pt-BR")}` : "Sem prazo definido"}</p><small>{task.assigned_to === userId ? "Atribuída a você" : task.assigned_to ? "Atribuída a outro membro" : "Sem responsável"}</small></div><Button variant="outline" disabled={busy || !(manage || task.created_by === userId || task.assigned_to === userId)} onClick={() => void run({ operation: "task_complete", id: task.id, complete: true })}>Concluir tarefa</Button></article>)}<Link className="management-link" href="/leads">Organizar próximos contatos no CRM</Link></section>;
+}

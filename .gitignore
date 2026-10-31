@@ -1,0 +1,39 @@
+# Dependências, builds e cache
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.npm-cache/
+
+# Segredos e configurações locais (somente o exemplo é versionado)
+.env*
+!.env.example
+.vercel/
+.supabase/
+supabase/.temp/
+.aws/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+
+# Logs, testes e arquivos locais
+*.log
+playwright-report/
+test-results/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.codex/
+*.local
+*.bak
+# Catálogos/evidências reais fornecidos por operador (nunca assets públicos)
+.local-data/
+*.catalog.local.json

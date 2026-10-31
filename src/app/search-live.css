@@ -1,0 +1,55 @@
+.live-prospecting .live-detail-body { padding:16px; display:grid; gap:14px; min-width:0; overflow-wrap:anywhere; }
+.live-detail-body h2 { font-size:20px; font-weight:650; }
+.live-detail-body dl { display:grid; gap:14px; }
+.live-detail-body dt { color:var(--muted-foreground); font-size:12px; }
+.live-detail-body dd { margin-top:3px; font-size:14px; }
+.live-detail-body p,.live-detail-body small { color:var(--muted-foreground); font-size:13px; line-height:1.6; }
+.live-status,.live-scope { padding:12px; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.live-status[role=alert] { border-left:3px solid var(--destructive); }
+.live-results { min-width:0; }
+.live-results .results-heading { align-items:start; }
+.live-results .results-heading .field-label { width:min(100%,270px); }
+.live-results>.gold-button,.live-results>button { margin:10px; max-width:calc(100% - 20px); }
+.live-results .companies-table { min-width:700px; table-layout:auto; }
+.live-results .companies-table td { white-space:normal; overflow-wrap:anywhere; max-width:190px; padding:8px; }
+.live-results .company-card { display:grid; gap:10px; overflow-wrap:anywhere; }
+.live-prospecting .metric-card { min-height:78px; }
+.live-prospecting .radius-options label:has(input:disabled) { opacity:.45; cursor:not-allowed; }
+.company-drawer>.live-detail-body { padding:16px; }
+.live-prospecting .ag-input { min-width:0; max-width:100%; }
+.live-prospecting .company-sidebar>section { padding:12px; }
+.live-attribution { padding:8px 12px; font-size:12px; color:var(--muted-foreground); line-height:1.6; overflow-wrap:anywhere; }
+.source-map { display:flex; flex-direction:column; flex:1; min-width:0; background:var(--background); border-radius:0 0 8px 8px; }
+.source-map-canvas { position:relative; min-height:360px; flex:1; isolation:isolate; border-bottom:1px solid var(--border); background:radial-gradient(ellipse at center,#d7a52e0d,transparent 75%),var(--background); }
+.source-map-canvas>svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.source-map-label { position:absolute; top:10px; left:10px; right:10px; font-size:11px; color:var(--muted-foreground); pointer-events:none; }
+.source-map-marker { position:absolute; width:44px; height:44px; margin:-22px; display:grid; place-items:center; color:var(--primary); background:var(--surface-raised); border:1px solid var(--gold); border-radius:50%; box-shadow:0 0 14px #ffcc4522; font-weight:700; }
+.source-map-marker.selected { outline:2px solid var(--primary); outline-offset:3px; background:var(--primary); color:var(--background); }
+.source-map-marker.is-cluster { box-shadow:0 0 20px #ffcc4540; }
+.source-map-canvas .map-controls { bottom:10px; z-index:2; }
+.source-map-group { display:grid; gap:8px; padding:12px; max-height:260px; overflow:auto; border-bottom:1px solid var(--border); }
+.source-map-group>strong { font-size:13px; color:var(--primary); }
+.source-map-group button { white-space:normal; justify-content:start; height:auto; min-height:44px; text-align:left; }
+.source-map-group button[aria-pressed=true] { border-color:var(--primary); color:var(--primary); }
+.source-map-scope,.source-map-selection { padding:10px 12px; font-size:12px; line-height:1.6; color:var(--muted-foreground); }
+.source-map-selection { color:var(--primary); }
+.live-company-select { display:flex; align-items:center; min-height:44px; width:100%; text-align:left; }
+.live-company-select[aria-pressed=true] { color:var(--primary); }
+.live-results tr[data-selected=true] { background:#ffcc450c; }
+.local-draft-notice { border-left:2px solid var(--gold); padding:8px; }
+.website-audit { display:grid; gap:12px; min-width:0; padding-block:12px; }
+.website-audit h3,.website-audit h4 { font-weight:600; }
+.website-audit .audit-scores { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.audit-scores>div { border:1px solid var(--border); border-radius:6px; padding:9px; }
+.website-audit li { border-top:1px solid var(--border); padding-block:10px; font-size:13px; }
+.website-audit button { min-height:44px; white-space:normal; height:auto; }
+.audit-notice { border-left:2px solid var(--gold); padding:8px; }
+.commercial-message { display:grid; gap:12px; min-width:0; padding-block:12px; overflow-wrap:anywhere; }
+.commercial-message h3 { font-weight:600; }
+.commercial-message button { min-height:44px; height:auto; white-space:normal; }
+.commercial-message textarea { min-height:240px; resize:vertical; }
+.message-review { display:flex; align-items:center; gap:8px; min-height:44px; font-size:13px; cursor:pointer; }
+.message-review input { flex-shrink:0; width:22px; height:22px; accent-color:var(--primary); }
+.live-detail-body .detail-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; height:auto; }
+.live-detail-body .detail-tabs button { min-height:44px; white-space:normal; }
+.crm-open-link { display:flex; align-items:center; min-height:44px; padding:8px; color:var(--primary); text-decoration:underline; }

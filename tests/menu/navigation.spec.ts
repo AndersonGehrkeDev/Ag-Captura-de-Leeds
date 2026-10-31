@@ -1,0 +1,34 @@
+import { test, expect } from "@playwright/test";
+import { login } from "../e2e/auth-helpers";
+
+test("navegação do menu e ações principais com Auth/RLS sintéticos", async ({ page }, info) => {
+  const paid: string[] = []; page.on("request", (request) => { if (/api\.openai\.com|googleapis\.com/.test(request.url())) paid.push(request.url()); });
+  await login(page, "owner-a@example.test", "/base");
+  const nav = page.getByRole("navigation", { name: "Navegação principal", exact: true });
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+  await expect(page.locator(".ag-sidebar").getByText("Limites do workspace")).toBeVisible();
+  await page.getByLabel("Nova tarefa", { exact: true }).fill("Revisar carteira [TESTE-MENU]"); await page.getByRole("button", { name: "Criar tarefa", exact: true }).click();
+  const task = page.locator("article").filter({ has: page.getByRole("heading", { name: "Revisar carteira [TESTE-MENU]", exact: true }) });
+  await expect(task).toBeVisible(); await task.getByRole("button", { name: "Concluir tarefa", exact: true }).click(); await expect(task).toHaveCount(0);
+  await nav.getByRole("link", { name: "Modelos de Mensagens", exact: true }).click(); await expect(page.getByRole("heading", { name: "Modelos de Mensagens", exact: true })).toBeVisible();
+  await page.getByLabel("Nome do modelo", { exact: true }).fill("Modelo criado [TESTE-MENU]"); await page.getByLabel("Texto do modelo", { exact: true }).fill("Apresentação original [TESTE-MENU]"); await page.getByRole("button", { name: "Criar modelo", exact: true }).click();
+  const model = page.locator("article").filter({ has: page.getByRole("heading", { name: "Modelo criado [TESTE-MENU]", exact: true }) }); await expect(model).toBeVisible(); await model.getByRole("button", { name: "Editar modelo", exact: true }).click();
+  await page.getByLabel("Texto do modelo", { exact: true }).fill("Apresentação editada [TESTE-MENU]"); await page.getByRole("button", { name: "Salvar modelo", exact: true }).click(); await expect(model.getByText("Apresentação editada [TESTE-MENU]", { exact: true })).toBeVisible();
+  await model.getByRole("button", { name: "Excluir modelo", exact: true }).click(); await expect(model).toHaveCount(0);
+  const approved = page.locator("article").filter({ has: page.getByRole("heading", { name: "Modelo autorizado [TESTE-MENU]", exact: true }) }); await approved.getByRole("button", { name: "Copiar modelo salvo", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Modelo autorizado copiado"); expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("Crédito SINTÉTICO [TESTE-MENU]");
+  await nav.getByRole("link", { name: "Campanhas", exact: true }).click(); await page.getByLabel("Nome da campanha", { exact: true }).fill("Carteira organizada [TESTE-MENU]"); await page.getByRole("button", { name: "Criar campanha", exact: true }).click();
+  const campaign = page.locator("article").filter({ has: page.getByRole("heading", { name: "Carteira organizada [TESTE-MENU]", exact: true }) }); await expect(campaign).toBeVisible(); await campaign.getByRole("link", { name: "Abrir campanha", exact: true }).click();
+  await page.getByLabel("Lead do workspace", { exact: true }).selectOption("20000000-0000-4000-8000-000000000001"); await page.getByRole("button", { name: "Adicionar participante", exact: true }).click();
+  await expect(page.getByLabel("Registro de contato", { exact: true })).toBeVisible(); await page.getByLabel("Registro de contato", { exact: true }).selectOption("contacted"); await page.getByLabel("Confirmo este registro manual; nenhum envio será feito.").check(); await page.getByRole("button", { name: "Salvar registro de contato", exact: true }).click();
+  await expect(page.locator("article p").filter({ hasText: /^Contato registrado$/ })).toBeVisible();
+  await nav.getByRole("link", { name: "Relatórios", exact: true }).click(); await expect(page.getByRole("heading", { name: "Ganhos e perdas", exact: true })).toBeVisible(); await expect(page.getByRole("heading", { name: "Consumo e limites reais", exact: true })).toBeVisible(); await page.getByRole("main").getByRole("button", { name: "Atualizar dados do workspace", exact: true }).click();
+  await nav.getByRole("link", { name: "Mapa de Oportunidades", exact: true }).click(); await expect(page.getByRole("heading", { name: "Mapa de Oportunidades", exact: true })).toBeVisible(); await page.getByRole("button", { name: "Buscar empresas", exact: true }).click(); await expect(page.getByRole("region", { name: "Mapa de coordenadas da fonte autorizada", exact: true })).toBeVisible();
+  await nav.getByRole("link", { name: "Prospecção de Empresas", exact: true }).click(); await expect(page.getByRole("heading", { name: "Prospecção de Empresas", exact: true })).toBeVisible();
+  await nav.getByRole("link", { name: "Meus Leads", exact: true }).click(); await expect(page.getByRole("heading", { name: "Meus Leads", exact: true })).toBeVisible();
+  await nav.getByRole("link", { name: "Configurações", exact: true }).click(); await page.getByLabel("Nome do workspace", { exact: true }).fill("AG Equipe [TESTE-MENU]"); await page.getByRole("button", { name: "Salvar workspace", exact: true }).click(); await expect(page.getByRole("status")).toContainText("Alteração salva");
+  await page.getByLabel("Nome de exibição", { exact: true }).fill("Anderson [TESTE-MENU]"); await page.getByRole("button", { name: "Salvar perfil", exact: true }).click(); await expect(page.getByText("Perfil atualizado.", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Gerenciar membros e convites", exact: true }).click(); await expect(page.getByRole("heading", { name: "Membros e convites", exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 }); await page.getByRole("button", { name: "Abrir menu", exact: true }).click(); await page.getByRole("dialog").getByRole("link", { name: "Relatórios", exact: true }).click(); await expect(page.getByRole("heading", { name: "Relatórios", exact: true })).toBeVisible(); await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); expect(paid).toEqual([]); await page.screenshot({ path: info.outputPath("menu-relatorios-mobile.png") });
+});
