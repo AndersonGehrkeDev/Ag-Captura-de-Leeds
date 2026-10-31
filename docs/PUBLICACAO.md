@@ -9,9 +9,9 @@ Preparação em 30/10/2026. Destino indicado pelo usuário e acesso de escrita c
 | Aplicação local | Resultados do [Prompt 13](VALIDACAO-CONSOLIDADA.md) reutilizados; nenhum módulo de runtime alterado nesta preparação |
 | Credenciais no Git | `.gitignore` protege `.env*` exceto exemplo, `.vercel`, `.supabase`, catálogos locais, chaves e artefatos. `.env.example` contém apenas nomes, campos vazios e defaults locais/false |
 | Conferência adicional | `node scripts/security/check-secrets.mjs`: padrões de segredo, arquivos privados e valores do exemplo; apenas nomes/regra em erros, sem valores. Não é certificação contra todo formato de segredo |
-| GitHub | Conta autenticada via Git Credential Manager; destino indicado confirmado com permissão de push |
-| CI | `.github/workflows/ci.yml`, um job com tipos/lint/build e os mesmos dez casos essenciais; execução remota depende do push e é registrada no acompanhamento |
-| Vercel | Credencial local encontrada, porém API respondeu **403** em usuário/equipes/projetos. Sem equipe, plano, projeto, domínio ou variáveis confirmados |
+| GitHub | **Publicado** em `main`: `b8468f2` (aplicação), `ab8dbd8` (CI/publicação) e `eb9ee85` (origens no build de teste), pushes confirmados |
+| CI | Um job com tipos/lint/build e dez casos essenciais. [Primeira execução](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159440361): verificações e 8 casos passaram, seleção falhou por origem incorporada no build. [Reteste direcionado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159814737): **2 casos restantes aprovados** após corrigir o workflow |
+| Vercel | Sessão renovada pelo CLI oficial; conta `lazzaribr-6231`, equipe `AndersonGehrkeDev` (`anderson-gehrke-dev`), **plano Hobby** confirmado. Sem plano comercial disponível ou projeto desta aplicação; nenhum deploy/variável criado |
 | Supabase | CLI respondeu **Access token not provided**; sem projeto vinculado. Nenhuma migração remota, callback ou variável alterado |
 | Google | Sem projeto/chaves acessíveis; APIs Places/Maps continuam bloqueadas pela política. Nenhuma API ativada ou chave exposta |
 | Deploy / URLs | **Nenhum deploy Vercel confirmado. Não existe URL Preview/Production a entregar nesta preparação** |
@@ -24,18 +24,23 @@ Os arquivos publicáveis foram conferidos antes do commit/push. Há uma exceçã
 - Tipos, lint e build executados uma vez por execução; quatro testes de serviço, três verificações SQL e três Chromium. A `.next` gerada é reutilizada pelos servidores dos testes. Nenhum `npm run check`, suíte inteira ou matriz de navegadores.
 - Push somente em `main`, PRs e execução manual; push em branch de PR não cria um segundo workflow de push. Concurrency cancela execução obsoleta. Segredos de produção não são fornecidos ao job; somente loopback e fixtures.
 - CI não aplica migrações, não envia e-mails, não chama APIs pagas e não faz deploy com chave privilegiada. O build necessário da Vercel instala/compila o produto, sem repetir os testes da CI.
+- A execução manual pode escolher `retest_selection=true`: apenas rebuild necessário e os dois casos de seleção, com nome de job distinto. Isso **não substitui** a checagem completa obrigatória de push/PR; todos os pushes/PRs normais continuam com a bateria essencial. O modo foi acrescentado para repetir somente a falha de infraestrutura desta publicação.
 - Confira o resultado em [Actions](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions). Aguarde aprovação da CI antes da primeira importação na Vercel. Para próximas mudanças, configure revisão/checagem obrigatória do job antes de merge em `main`, conforme os recursos da conta.
+
+Resultado desta entrega: instalação/scanner/tipos/lint/build e os dez casos essenciais **passaram ao combinar a execução inicial e o reteste dos dois casos falhos**. A primeira execução continua vermelha e não foi apagada. A segunda é parcial por escolha explícita, sem repetir tipos/lint/serviços/SQL aprovados; um rebuild foi indispensável para remover a origem fixa do artefato. Commits finais só de documentação usam `[skip ci]` para não criar outra bateria. Não se declara uma nova execução integral aprovada no último SHA documental.
 
 ## Passos manuais indispensáveis por falta de acesso
 
 ### 1. Vercel
 
-1. Entre novamente no [painel Vercel](https://vercel.com/dashboard) pela conta autorizada. A sessão CLI salva não está válida para estas APIs; não compartilhe seu token pelo chat.
+1. Entre no [painel da equipe Vercel](https://vercel.com/anderson-gehrke-dev) pela conta autorizada. A sessão salva inicialmente respondeu 403, mas o CLI oficial **65.9.0**, executado temporariamente via npm, renovou a autenticação e `whoami`/API passaram. Não houve dependência/lockfile do projeto alterado nem token exibido.
 2. Selecione uma **equipe/plano que permita uso comercial** já contratado. Hobby é restrito a uso pessoal não comercial. Não houve contratação ou upgrade automático nesta etapa.
 3. Importe o repositório indicado, diretório raiz `.`, framework Next.js, branch Production `main`, Node **22.x**. `vercel.json` fixa `npm ci` e `npm run build`; não mude para export estático, pois há SSR/Auth/Route Handlers.
 4. Defina uma origem HTTPS canônica de Production e uma origem Preview fixa para uma branch controlada. Configure Preview com Supabase próprio/de teste; não conecte PRs arbitrários ao banco Production. A aplicação valida uma origem exata e não deriva callbacks de `Host`.
 5. Configure as variáveis na tabela abaixo em **Settings → Environment Variables**, no ambiente correto. Segredos devem ser inseridos diretamente no painel e marcados Sensitive quando disponível. Não subir `.env.local`, tokens ou catálogo privado no Git.
 6. Faça o deploy e registre URLs reais, SHA e resultado. Alterações de variáveis exigem novo deploy. Abra os testes manuais somente pela origem canônica configurada; URLs aleatórias de Preview podem ser recusadas pela verificação de Origin.
+
+`NEXT_PUBLIC_APP_URL` é incorporada pelo Next quando definida durante o build. Faça um build por ambiente com a origem correta; não promova o mesmo artefato de Preview a Production supondo que trocar a variável de runtime corrija a origem incorporada. O workflow de testes deixa essa variável ausente no build porque exercita dois servidores locais, cada um com sua origem própria; não foi liberada uma allowlist ampla nem removido o controle de Origin.
 
 ### 2. Variáveis por ambiente
 
@@ -95,7 +100,7 @@ Places/Maps continuam desativados por [integracoes.md](integracoes.md). Não cri
 
 Auditoria e IA já declaram `runtime=nodejs` e `maxDuration=60`. A requisição tem deadline de 50 s; PSI limita a chamada a 40 s e OpenAI a 30 s. Criar/executar/consumir usa registros transacionais no Supabase, prova do executor, idempotência e tentativa limitada. Nada continua em memória após a resposta: execução é aguardada e interrupções são recuperadas pelo lease durável na próxima ação, sem worker autônomo ou retry pago silencioso.
 
-Com Fluid compute, os limites publicados de Pro comportam 60 s. A compatibilidade é **condicional**: equipe/plano/Fluid compute, timeout efetivo, conexão com o banco e disponibilidade das APIs não puderam ser conferidos por causa do 403. Não reduzir para Edge nem assumir execução garantida por ter uma linha `maxDuration`. Não foi adicionado cron, fila paga ou novo executor. Se o plano efetivo não comportar os limites, manter flags fechadas até decisão explícita.
+Com Fluid compute, os limites publicados de Pro comportam 60 s. A equipe encontrada usa **Hobby**, que também comporta esse tempo tecnicamente com Fluid compute, porém **não permite este uso comercial**. A compatibilidade de produção continua condicionada a plano comercial e verificação de Fluid compute/timeout efetivo, conexão com o banco e disponibilidade das APIs. Não reduzir para Edge nem assumir execução garantida por ter uma linha `maxDuration`. Não foi adicionado cron, fila paga ou novo executor. Até haver plano/configuração adequados, manter flags fechadas; nenhum upgrade foi contratado.
 
 ## Conferência curta após deploy
 
