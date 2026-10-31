@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      retest_selection:
+        description: 'Repetir somente seleção após correção de infraestrutura (não substitui CI completa de push/PR)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,13 +20,14 @@ concurrency:
 
 jobs:
   essenciais:
-    name: Tipos, lint, build e fluxos essenciais
+    name: ${{ inputs.retest_selection && 'Reteste de seleção' || 'Tipos, lint, build e fluxos essenciais' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       CI: 'true'
       NEXT_TELEMETRY_DISABLED: '1'
-      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+      # Não fixar NEXT_PUBLIC_APP_URL no build de teste: Next a incorporaria
+      # também no servidor 3103. Cada webServer define sua origem exata.
       NEXT_PUBLIC_SUPABASE_URL: ''
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ''
       SUPABASE_SECRET_KEY: ''
@@ -57,13 +63,21 @@ jobs:
       - run: npm ci
       - run: node scripts/security/check-secrets.mjs
       - run: npm run typecheck
+        if: ${{ !inputs.retest_selection }}
       - run: npm run lint
+        if: ${{ !inputs.retest_selection }}
       - run: npm run build
       - name: CRM e falhas simuladas de PSI e IA (4 casos)
+        if: ${{ !inputs.retest_selection }}
         run: npm test -- src/server/crm/crm.test.ts src/server/audits/audit.test.ts src/server/messages/message.test.ts -t "adiciona referência|move para|falha 429|429 não vaza"
       - name: Isolamento SQL de workspaces (3 verificações)
+        if: ${{ !inputs.retest_selection }}
         run: npm run db:test -- --grep '^SELECT leads:|^UPDATE/DELETE invisíveis'
       - name: Instalar somente Chromium do Playwright fixado
         run: npx --no-install playwright install --with-deps chromium
       - name: Login e seleção sincronizada (3 casos, build reutilizado)
+        if: ${{ !inputs.retest_selection }}
         run: npx --no-install playwright test --config=playwright.consolidated.config.ts
+      - name: Reteste somente dos dois casos de seleção
+        if: ${{ inputs.retest_selection }}
+        run: npx --no-install playwright test --config=playwright.consolidated.config.ts --project=selecao
