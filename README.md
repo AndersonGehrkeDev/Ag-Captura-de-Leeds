@@ -171,6 +171,6 @@ Páginas/layouts são Server Components por padrão. Formulários e demais inter
 
 - Verificações e evidências desta etapa: [ACOMPANHAMENTO.md](docs/ACOMPANHAMENTO.md).
 - Versões exatas, fontes oficiais e decisão de compatibilidade do ESLint: [VERSOES.md](docs/VERSOES.md).
-- Git local inicializado; GitHub e Vercel ainda precisam de destino e conexão autorizada. Nenhum push ou deploy foi realizado.
+- Destino GitHub confirmado: [AndersonGehrkeDev/Ag-Captura-de-Leeds](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds). CI e preparação de deploy em [PUBLICACAO.md](docs/PUBLICACAO.md); situação efetivamente verificada em [ACOMPANHAMENTO.md](docs/ACOMPANHAMENTO.md). Vercel e Supabase remotos ainda precisam liberar acesso/configuração.
 - Auth SSR, perfil, workspaces e convites foram implementados/testados localmente. Aplicação das migrações/configuração em Supabase, templates/e-mails reais, owner confirmado, validação com contas reais e integrações comerciais permanecem pendentes.
-- A interface de prospecção está disponível como demonstração explícita; os demais módulos do menu não representam funcionalidades comerciais concluídas.
+- Prospecção tem demonstração explícita e busca condicionada a fonte autorizada. Módulos do menu/CRM foram implementados e verificados com fixtures; uso comercial real depende de configuração e validação no ambiente destino.

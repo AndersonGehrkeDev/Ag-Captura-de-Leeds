@@ -1,0 +1,69 @@
+name: CI essencial
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  essenciais:
+    name: Tipos, lint, build e fluxos essenciais
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+      NEXT_PUBLIC_SUPABASE_URL: ''
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ''
+      SUPABASE_SECRET_KEY: ''
+      GOOGLE_PLACES_API_KEY: ''
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ''
+      NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ''
+      GOOGLE_PAGESPEED_API_KEY: ''
+      OPENAI_API_KEY: ''
+      OPENAI_MODEL: ''
+      AUDIT_EXECUTOR_SECRET: ''
+      MESSAGE_EXECUTOR_SECRET: ''
+      CRM_EXECUTOR_SECRET: ''
+      OWNED_CATALOG_FILE: ''
+      AUTH_ALLOW_SIGNUP: 'false'
+      FEATURE_CATALOG_SEARCH: 'false'
+      FEATURE_CATALOG_DETAILS: 'false'
+      FEATURE_GOOGLE_PLACES: 'false'
+      FEATURE_GOOGLE_MAPS: 'false'
+      FEATURE_WEBSITE_AUDIT: 'false'
+      FEATURE_AI_MESSAGES: 'false'
+      FEATURE_OWN_DATA_PERSISTENCE: 'false'
+      FEATURE_DATA_EXPORT: 'false'
+    steps:
+      - name: Checkout sem credencial persistida
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Node da base validada
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.13.0'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/security/check-secrets.mjs
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - name: CRM e falhas simuladas de PSI e IA (4 casos)
+        run: npm test -- src/server/crm/crm.test.ts src/server/audits/audit.test.ts src/server/messages/message.test.ts -t "adiciona referência|move para|falha 429|429 não vaza"
+      - name: Isolamento SQL de workspaces (3 verificações)
+        run: npm run db:test -- --grep '^SELECT leads:|^UPDATE/DELETE invisíveis'
+      - name: Instalar somente Chromium do Playwright fixado
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Login e seleção sincronizada (3 casos, build reutilizado)
+        run: npx --no-install playwright test --config=playwright.consolidated.config.ts
