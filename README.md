@@ -17,6 +17,33 @@ Acesse [http://localhost:3000](http://localhost:3000): páginas privadas encamin
 
 O cadastro começa fechado, por convite. Configuração de Auth, callbacks, templates de confirmação/recuperação, provisionamento do owner e convites: [AUTENTICACAO.md](docs/AUTENTICACAO.md). Não há usuário/senha de demonstração com acesso ao banco real.
 
+## Configuração e primeiro acesso
+
+**Sem serviços externos:** após `npm ci` e `npm run dev`, abra `/prospeccao/demonstracao`. É uma demonstração identificada; nenhuma empresa, anotação ou lead dessa tela é persistido no banco real.
+
+**Para login e CRM reais:**
+
+1. Copie `.env.example` para `.env.local` **somente se esse arquivo ainda não existir**. Preencha diretamente no arquivo `NEXT_PUBLIC_APP_URL=http://localhost:3000`, `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` do projeto correto. Mantenha `AUTH_ALLOW_SIGNUP=false`. Não envie valores de chaves pelo chat ou ao Git.
+2. Autentique e vincule o Supabase CLI ao projeto correto; confira o histórico e aplique **somente as migrações pendentes até 010**, sem reset/seed. Comandos de dry-run/aplicação estão em [PUBLICACAO.md](docs/PUBLICACAO.md#3-supabase--somente-pendentes-sem-reset). `private` deve permanecer fora da Data API.
+3. No Supabase Auth, mantenha signup fechado e configure Email, confirmação, templates, Site URL e os callbacks exatos da origem usada. Crie/convide a conta inicial e confirme o e-mail. Provisione explicitamente esse UUID como owner com o exemplo administrativo [bootstrap.sql.example](supabase/bootstrap.sql.example), substituindo a placeholder; não há auto-claim nem senha inicial do projeto.
+4. Para gravar leads/metadados, configure `CRM_EXECUTOR_SECRET` **somente no servidor**, seu SHA-256 em `private.crm_executor_config` e `FEATURE_OWN_DATA_PERSISTENCE=true`, conforme [CRM.md](docs/CRM.md). A chave privilegiada Supabase não é necessária ao CRUD comum. Mantenha auditoria, IA, exportação e fontes desativadas até configurar suas evidências, cotas e credenciais próprias.
+5. Reinicie o servidor, entre em `/login` com a conta confirmada e selecione o workspace, se solicitado. Em `/leads`, use **Cadastrar lead manualmente → Salvar lead manual** para uma identificação interna própria e confira a persistência após recarregar. Isso não comprova nome empresarial nem autoriza copiar Google. `/prospeccao` continua sem resultados se não houver fonte aprovada configurada.
+
+**Hospedagem:** Preview e Production exigem origens HTTPS e configurações próprias antes do build. Há GitHub publicado, mas **nenhum deploy confirmado**: a equipe Vercel acessível usa Hobby, incompatível com este uso comercial, e o Supabase real ainda está sem autenticação/configuração. Não houve contratação automática. Variáveis por ambiente, callbacks, catálogo privado em serverless, migrações e rollback: [PUBLICACAO.md](docs/PUBLICACAO.md).
+
+## Situação conferida pelos registros
+
+| Área | Implementado e verificado | Limitação real |
+| --- | --- | --- |
+| Desktop | Composição/tema do mockup: lateral, filtros, mapa, tabela e painel; capturas da interface e conferência consolidada em 1366 × 768 | Logo textual provisório; mapa local esquemático, sem ruas/Google. Não é reprodução integral de todos os detalhes gráficos |
+| Mobile | Fluxos de seleção, abas, cards, drawer, Escape/foco e ausência de transbordamento global nos pontos testados em 390 × 844 | Teclado virtual/áreas seguras em aparelho físico não validados |
+| Busca/mapa | Catálogo privado sob permissões; seleção sincronizada mapa/lista/detalhes validada com fixtures | Fonte comercial não configurada; Google Places/Maps bloqueados |
+| Auditorias/IA | Adaptadores PageSpeed e OpenAI/Responses, tarefas/cotas e estados de falha; respostas simuladas válidas e de erro nas etapas correspondentes | Nenhuma análise/geração real validada; faltam chaves, evidências, limites e configuração |
+| CRM/Auth/RLS | Login/proteção/logout com fixture HTTP; adicionar, deduplicar, mudar etapa e anotar com SQL; isolamento A/B e tentativa indevida exercitados em PostgreSQL/PGlite | Supabase Auth/PostgREST hospedado e gravação no ambiente final ainda não validados |
+| GitHub/CI | [Repositório publicado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds); tipos/lint/build e dez casos essenciais aprovados entre [execução inicial](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159440361) e [reteste direcionado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159814737) | Execução inicial preserva a falha de infraestrutura corrigida; reteste é parcial. Sem URL Preview/Production |
+
+Esta conferência reutiliza evidências de [VALIDACAO-ETAPA-2.md](docs/VALIDACAO-ETAPA-2.md), [VALIDACAO-CONSOLIDADA.md](docs/VALIDACAO-CONSOLIDADA.md) e [ACOMPANHAMENTO.md](docs/ACOMPANHAMENTO.md). Não representa outra rodada de testes nem certifica integrações ainda sem acesso.
+
 ## Contratos e permissões de integração
 
 Busca, detalhes, auditoria, geração de mensagem e persistência própria têm contratos estritos e política central por provedor/campo/finalidade. Flags começam fechadas. Catálogo, auditoria PSI e mensagens OpenAI têm implementação condicionada à configuração/evidências. Não há chamadas comerciais automáticas.
@@ -37,7 +64,7 @@ Cidade usa associação declarada na fonte; raios exigem centro/coordenadas auto
 
 **Mensagem IA:** tons Profissional/Consultivo/Direto, composição estruturada com SDK oficial OpenAI/Responses, editor, regeneração e cópia revisada; envio manual. Reutiliza modelos existentes com evidência de origem e cotas/tarefas duráveis. Só nome e descrição de serviço autorizados entram na IA; Google, PSI e anotações permanecem excluídos. Configurar migração 008, `OPENAI_API_KEY`, `OPENAI_MODEL`, `MESSAGE_EXECUTOR_SECRET`/hash privado, contador mensal, flags e evidências conforme [MENSAGENS-IA.md](docs/MENSAGENS-IA.md). SDK e lockfile fixados; geração válida e erro 429 verificados com fixtures sem chamadas pagas. Conexão real ainda não verificada.
 
-**Auditoria do site:** aba nos detalhes, mobile por padrão e desktop por escolha, com notas disponíveis, recomendações, data e avaliação comercial simples separada do Lighthouse. Reutiliza tarefas/cotas duráveis no Supabase; não retém relatórios PSI nem executa trabalho em memória após a resposta. Configurar sete migrações, chave PSI, `AUDIT_EXECUTOR_SECRET` e seu hash privado, cotas e evidências conforme [AUDITORIAS.md](docs/AUDITORIAS.md). Não houve análise real: foram verificados somente uma resposta válida e uma falha com fixtures. UI/build/regressão consolidada ficam para o Prompt 13.
+**Auditoria do site:** aba nos detalhes, mobile por padrão e desktop por escolha, com notas disponíveis, recomendações, data e avaliação comercial simples separada do Lighthouse. Reutiliza tarefas/cotas duráveis no Supabase; não retém relatórios PSI nem executa trabalho em memória após a resposta. Aplicar as migrações pendentes até 010 e configurar chave PSI, `AUDIT_EXECUTOR_SECRET`/hash privado, cotas e evidências conforme [AUDITORIAS.md](docs/AUDITORIAS.md). Resposta válida e falha passaram com fixtures na etapa própria; a falha foi reutilizada na consolidação/CI. Não houve análise real; build e conferência consolidada estão registrados, sem validar essa integração real.
 
 O desktop mantém menu lateral de 238 px, painel direito de 335 px, filtros à esquerda, mapa central e tabela inferior. Em telas intermediárias os detalhes passam para drawer; no celular há menu recolhível, filtros expansíveis, abas Mapa/Lista e cards de empresas. Tokens de cores estão em `src/app/globals.css`; layout e estados visuais em `src/app/prospecting.css`.
 
@@ -52,7 +79,9 @@ No PowerShell com execução de scripts desabilitada, use `npm.cmd` e `npx.cmd` 
 Para configurar recursos futuramente, copie `.env.example` para `.env.local` e preencha somente as variáveis necessárias diretamente nesse arquivo. No PowerShell:
 
 ```powershell
-Copy-Item -LiteralPath .env.example -Destination .env.local
+if (!(Test-Path -LiteralPath .env.local)) {
+  Copy-Item -LiteralPath .env.example -Destination .env.local
+}
 npm.cmd run dev
 ```
 
@@ -66,6 +95,8 @@ npm start
 ```
 
 ## Verificação e testes
+
+O recorte essencial já foi executado no Prompt 13 e na CI, com resultado/limitações no quadro acima e nos relatórios vinculados. Esta conferência final alterou apenas documentação, sem nova bateria. Os comandos completos abaixo são disponíveis para solicitação explícita; para o conjunto selecionado, use os comandos registrados em [VALIDACAO-CONSOLIDADA.md](docs/VALIDACAO-CONSOLIDADA.md).
 
 ```bash
 npm run lint
@@ -98,8 +129,8 @@ A validação é tardia, executada no servidor e independente para cada recurso.
 | --- | --- |
 | Aplicação | `NEXT_PUBLIC_APP_URL` (padrão local: `http://localhost:3000`) |
 | Auth e banco | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
-| Busca de empresas | `GOOGLE_PLACES_API_KEY` (servidor) |
-| Mapa | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` |
+| Busca de empresas | `OWNED_CATALOG_FILE`, `FEATURE_CATALOG_SEARCH`, `FEATURE_CATALOG_DETAILS` e evidências aprovadas do catálogo privado |
+| Mapa local | Coordenadas aprovadas do catálogo; sem chave/SDK externo. Google Maps continua bloqueado |
 | Auditorias | `GOOGLE_PAGESPEED_API_KEY`, `AUDIT_EXECUTOR_SECRET`/hash privado (servidor) |
 | IA | `OPENAI_API_KEY`, `OPENAI_MODEL`, `MESSAGE_EXECUTOR_SECRET`/hash privado (servidor) |
 | CRM | Supabase, `CRM_EXECUTOR_SECRET`/hash privado, flags; fonte/evidências/política SQL para referências e CSV |
@@ -122,7 +153,7 @@ npm.cmd run db:types
 npm.cmd run db:types:check
 ```
 
-Os comandos acima não exigem Docker nem chaves: aplicam as migrações em PostgreSQL PGlite descartável e geram tipos pelo catálogo executado (atualmente dez). A suíte de segurança inclui usuários de dois workspaces e os cenários históricos de barreira Google/atualização legada; não foi reexecutada nas últimas etapas, por instrução de validação restrita. Auditoria, mensagens, CRM e páginas de menu têm verificações direcionadas documentadas nos respectivos guias. O harness Auth é exclusivo de teste; não valida o serviço Auth/JWT real. A suíte consolidada fica para o Prompt 13.
+Os comandos acima não exigem Docker nem chaves: aplicam as migrações em PostgreSQL PGlite descartável e geram tipos pelo catálogo executado (atualmente dez). A suíte de segurança inclui dois workspaces e cenários históricos de barreira Google/atualização legada. Na consolidação/CI foram selecionadas três verificações SQL: SELECT isolado A/B e tentativa indevida de UPDATE/DELETE; o restante não foi reexecutado. Auditoria, mensagens, CRM e páginas de menu têm evidências nos respectivos guias. O harness Auth é exclusivo de teste; não valida o serviço Auth/JWT real. Resultado consolidado: [VALIDACAO-CONSOLIDADA.md](docs/VALIDACAO-CONSOLIDADA.md).
 
 Com Docker/Podman disponível, `npm run db:start` inicia a stack oficial e `npm run db:reset:local` recria somente o banco local a partir das migrações, apagando seus registros. Seeds automáticas estão desativadas; a seed sintética exige opt-in explícito e nunca deve ser aplicada em produção. `npm run db:stop` encerra a stack local.
 
