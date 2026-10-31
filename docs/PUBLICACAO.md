@@ -2,6 +2,8 @@
 
 Preparação em 30/10/2026. Destino indicado pelo usuário e acesso de escrita confirmados: [AndersonGehrkeDev/Ag-Captura-de-Leeds](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds). O repositório encontrado é público e estava vazio; sua visibilidade foi preservada. Commit inicial da aplicação: `b8468f2`.
 
+**Atualização de 31/10/2026:** usuário esclareceu uso próprio não comercial. Projeto Vercel existente `ag-captura-de-leed` e integração Supabase foram encontrados e preservados. Publicada a correção de origem em [https://ag-captura-de-leed.vercel.app](https://ag-captura-de-leed.vercel.app), deploy `dpl_7w2grt96ALWDxrBxm2xJXWpPDJuv` Ready. Isso confirma hospedagem e rotas públicas/proteção de acesso, **não** login real, migrações, owner ou gravação de lead. Preview continua pendente. As instruções comerciais de preparação abaixo só se aplicam se houver uso comercial futuro.
+
 ## Situação verificada
 
 | Item | Evidência / estado |
@@ -11,10 +13,10 @@ Preparação em 30/10/2026. Destino indicado pelo usuário e acesso de escrita c
 | Conferência adicional | `node scripts/security/check-secrets.mjs`: padrões de segredo, arquivos privados e valores do exemplo; apenas nomes/regra em erros, sem valores. Não é certificação contra todo formato de segredo |
 | GitHub | **Publicado** em `main`: `b8468f2` (aplicação), `ab8dbd8` (CI/publicação) e `eb9ee85` (origens no build de teste), pushes confirmados |
 | CI | Um job com tipos/lint/build e dez casos essenciais. [Primeira execução](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159440361): verificações e 8 casos passaram, seleção falhou por origem incorporada no build. [Reteste direcionado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159814737): **2 casos restantes aprovados** após corrigir o workflow |
-| Vercel | Sessão renovada pelo CLI oficial; conta `lazzaribr-6231`, equipe `AndersonGehrkeDev` (`anderson-gehrke-dev`), **plano Hobby** confirmado. Sem plano comercial disponível ou projeto desta aplicação; nenhum deploy/variável criado |
-| Supabase | CLI respondeu **Access token not provided**; sem projeto vinculado. Nenhuma migração remota, callback ou variável alterado |
+| Vercel | Conta `lazzaribr-6231`, equipe `AndersonGehrkeDev`, Hobby mantido para uso pessoal não comercial esclarecido pelo usuário. Projeto existente reaproveitado, Node 22.x, `NEXT_PUBLIC_APP_URL` e `AUTH_ALLOW_SIGNUP=false` cadastrados em Production; novo deploy Ready |
+| Supabase | Integração Vercel já contém variáveis Production, projeto `gajopgslkyhsnsehcrob`. Health Auth 200; acesso administrativo CLI ausente, conector ainda sem conexão confirmada. Nenhuma migração, usuário, callback, hash ou limite alterado |
 | Google | Sem projeto/chaves acessíveis; APIs Places/Maps continuam bloqueadas pela política. Nenhuma API ativada ou chave exposta |
-| Deploy / URLs | **Nenhum deploy Vercel confirmado. Não existe URL Preview/Production a entregar nesta preparação** |
+| Deploy / URLs | Production: **https://ag-captura-de-leed.vercel.app**. `/login` 200 e `/prospeccao` 307 para login no domínio correto, sem localhost. Preview e login/gravação autenticados pendentes |
 
 Os arquivos publicáveis foram conferidos antes do commit/push. Há uma exceção exata no scanner para a chave fictícia do teste que recusa chave privilegiada no cliente; outros valores no mesmo arquivo continuam bloqueados. Seeds e fixtures sintéticas continuam exclusivas de desenvolvimento/testes; não são configuração de produção.
 
@@ -100,7 +102,7 @@ Places/Maps continuam desativados por [integracoes.md](integracoes.md). Não cri
 
 Auditoria e IA já declaram `runtime=nodejs` e `maxDuration=60`. A requisição tem deadline de 50 s; PSI limita a chamada a 40 s e OpenAI a 30 s. Criar/executar/consumir usa registros transacionais no Supabase, prova do executor, idempotência e tentativa limitada. Nada continua em memória após a resposta: execução é aguardada e interrupções são recuperadas pelo lease durável na próxima ação, sem worker autônomo ou retry pago silencioso.
 
-Com Fluid compute, os limites publicados de Pro comportam 60 s. A equipe encontrada usa **Hobby**, que também comporta esse tempo tecnicamente com Fluid compute, porém **não permite este uso comercial**. A compatibilidade de produção continua condicionada a plano comercial e verificação de Fluid compute/timeout efetivo, conexão com o banco e disponibilidade das APIs. Não reduzir para Edge nem assumir execução garantida por ter uma linha `maxDuration`. Não foi adicionado cron, fila paga ou novo executor. Até haver plano/configuração adequados, manter flags fechadas; nenhum upgrade foi contratado.
+Com Fluid compute, os limites publicados de Hobby comportam os handlers de 60 s. Em **31/10 o usuário esclareceu uso próprio não comercial**, portanto Hobby foi mantido; a exigência anterior de plano comercial não se aplica a esse escopo. Caso o uso passe a comercial, reavaliar o plano antes de operar. Auditorias/IA continuam desativadas até configurar banco, evidências, cotas e APIs, sem supor execução garantida só por haver `maxDuration`. Nenhum cron, fila paga, upgrade ou novo executor foi contratado.
 
 ## Conferência curta após deploy
 
@@ -110,14 +112,16 @@ No ambiente e workspace corretos, executar somente:
 2. Abrir `/prospeccao`, conferir origem HTTPS e estado da fonte. Não tratar demo/fixture como busca real.
 3. Adicionar um lead de fonte autorizada, se disponível; caso contrário cadastrar uma **identificação interna** em `/leads`, identificando-a como verificação de publicação. Recarregar e confirmar persistência no mesmo workspace. Nunca copiar conteúdo Google para produzir esse teste.
 
-Registrar URL, SHA, ambiente/workspace e resultado, sem senha, token ou conteúdo privado. Não executar a bateria geral novamente. Estes três passos **não foram executados remotamente**, pois não há deploy/Supabase acessíveis.
+Registrar URL, SHA, ambiente/workspace e resultado, sem senha, token ou conteúdo privado. Não executar a bateria geral novamente. Em 31/10 foram conferidos somente `/login` 200 e `/prospeccao` sem sessão, 307 para o login no próprio domínio; ambos com no-store. O Auth do Supabase respondeu 200 em health. **Login real, associação, migrações e gravação de lead não foram validados**, aguardando conexão administrativa e primeiro usuário.
 
 ## Rollback curto
 
-1. Na Vercel, em Deployments, escolher o último deploy **Ready conhecido como bom** e usar Instant Rollback/Promote conforme o plano; conferir o domínio e o commit. Não existe anterior conhecido nesta primeira publicação. Se ela falhar, manter o acesso fechado/indisponível até corrigir, sem afirmar rollback realizado.
+1. Na Vercel, em Deployments, escolher o último deploy **Ready conhecido como bom** e usar Instant Rollback/Promote conforme o plano; conferir domínio e commit. O deploy anterior `dpl_D3EJL5tLQSxKgwiDJPMzRxY9VsMN` existe, mas foi observado redirecionando para localhost: não é referência conhecida como boa para o login. Não afirmar rollback realizado ou promover uma versão apenas pelo estado Ready.
 2. Reverter no Git o commit de aplicação que causou o problema com `git revert SHA_DO_COMMIT` e PR; não usar force push. Variáveis precisam de conferência própria: rollback do código não desfaz alterações de segredos/configuração automaticamente.
 3. **Não reverter o banco por reset ou migração destrutiva.** Manter schema compatível e criar migração corretiva para frente; restauração de backup é decisão de incidente separada. Nenhuma migração existente foi apagada/alterada nesta etapa.
 
 ## Fontes oficiais consultadas nesta preparação
 
 Consulta em **30/10/2026**, somente para CI/publicação e configurações necessárias: [checkout](https://github.com/actions/checkout), [setup-node](https://github.com/actions/setup-node), [Vercel limites](https://vercel.com/docs/functions/limitations), [duração](https://vercel.com/docs/functions/configuring-functions/duration), [Hobby e uso comercial](https://vercel.com/docs/plans/hobby), [rollback](https://vercel.com/docs/instant-rollback), [Supabase ambientes e migrações](https://supabase.com/docs/guides/deployment/managing-environments), [redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls) e [segurança de chaves Google](https://developers.google.com/maps/api-security-best-practices). CLI instalado também teve `db push --help` conferido; a consulta à página específica do comando não respondeu nesta sessão.
+
+Em **31/10/2026** foram conferidos especificamente [criação de variável Vercel](https://vercel.com/docs/rest-api/projects/create-one-or-more-environment-variables), [atualização de projeto](https://vercel.com/docs/rest-api/projects/update-an-existing-project) e a regra de uso pessoal do Hobby; `vercel redeploy --help` e `supabase login --help` conferidos nos CLIs já usados. Supabase pode ser autorizado pela conexão sugerida nesta conversa ou por login no terminal local (`npx.cmd supabase login`), sem enviar tokens pelo chat. O projeto a autorizar é `gajopgslkyhsnsehcrob`.
