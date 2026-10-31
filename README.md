@@ -19,9 +19,13 @@ O cadastro começa fechado, por convite. Configuração de Auth, callbacks, temp
 
 ## Configuração e primeiro acesso
 
+**Ambiente publicado já configurado:** abra [Recuperar acesso](https://ag-captura-de-leed.vercel.app/recuperar-senha), informe o mesmo e-mail da conta Supabase autorizada e defina sua senha pelo link recebido, **no mesmo navegador que iniciou a recuperação** (PKCE). O owner e o workspace AG já foram provisionados; não é necessário cadastrar-se ou repetir migrações/bootstrap. Não há senha publicada. Entrega do e-mail e definição da senha pelo usuário ainda não foram verificadas.
+
+Production usa o projeto dedicado **`omvbcuistwursfjopzmb` / `ag-prospeccao`**, Free, em São Paulo. O projeto anteriormente vinculado pertencia a outro aplicativo e foi preservado. Login real, tela de prospecção e gravação/releitura de um registro interno passaram na Vercel. O registro **Verificação de publicação — registro interno (31/10/2026)** identifica somente essa conferência, sem afirmar ser uma empresa.
+
 **Sem serviços externos:** após `npm ci` e `npm run dev`, abra `/prospeccao/demonstracao`. É uma demonstração identificada; nenhuma empresa, anotação ou lead dessa tela é persistido no banco real.
 
-**Para login e CRM reais:**
+**Para uma nova instalação ou ambiente local com login e CRM reais:**
 
 1. Copie `.env.example` para `.env.local` **somente se esse arquivo ainda não existir**. Preencha diretamente no arquivo `NEXT_PUBLIC_APP_URL=http://localhost:3000`, `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` do projeto correto. Mantenha `AUTH_ALLOW_SIGNUP=false`. Não envie valores de chaves pelo chat ou ao Git.
 2. Autentique e vincule o Supabase CLI ao projeto correto; confira o histórico e aplique **somente as migrações pendentes até 010**, sem reset/seed. Comandos de dry-run/aplicação estão em [PUBLICACAO.md](docs/PUBLICACAO.md#3-supabase--somente-pendentes-sem-reset). `private` deve permanecer fora da Data API.
@@ -29,7 +33,7 @@ O cadastro começa fechado, por convite. Configuração de Auth, callbacks, temp
 4. Para gravar leads/metadados, configure `CRM_EXECUTOR_SECRET` **somente no servidor**, seu SHA-256 em `private.crm_executor_config` e `FEATURE_OWN_DATA_PERSISTENCE=true`, conforme [CRM.md](docs/CRM.md). A chave privilegiada Supabase não é necessária ao CRUD comum. Mantenha auditoria, IA, exportação e fontes desativadas até configurar suas evidências, cotas e credenciais próprias.
 5. Reinicie o servidor, entre em `/login` com a conta confirmada e selecione o workspace, se solicitado. Em `/leads`, use **Cadastrar lead manualmente → Salvar lead manual** para uma identificação interna própria e confira a persistência após recarregar. Isso não comprova nome empresarial nem autoriza copiar Google. `/prospeccao` continua sem resultados se não houver fonte aprovada configurada.
 
-**Hospedagem:** interface publicada em [ag-captura-de-leed.vercel.app](https://ag-captura-de-leed.vercel.app), com Node 22 e origem canônica corrigida em 31/10/2026. O usuário esclareceu uso pessoal não comercial; Hobby foi mantido, sem upgrade. Login de usuário, migrações, workspace e persistência real ainda aguardam acesso administrativo/configuração do Supabase vinculado. Preview e Production exigem configurações próprias antes do build; Preview ainda não foi configurada. Guia e rollback: [PUBLICACAO.md](docs/PUBLICACAO.md).
+**Hospedagem:** [ag-captura-de-leed.vercel.app](https://ag-captura-de-leed.vercel.app), Node 22, Hobby mantido para uso próprio não comercial, sem upgrade. Production está ligada à base AG dedicada, com dez migrações aplicadas, signup fechado, callbacks exatos, owner e executor CRM. Preview ainda não tem banco/configuração separados. O Free recusou e-mails personalizados com o provedor padrão: templates nativos mantidos, sem contratar SMTP. Guia, evidências e rollback: [PUBLICACAO.md](docs/PUBLICACAO.md).
 
 ## Situação conferida pelos registros
 
@@ -39,8 +43,8 @@ O cadastro começa fechado, por convite. Configuração de Auth, callbacks, temp
 | Mobile | Fluxos de seleção, abas, cards, drawer, Escape/foco e ausência de transbordamento global nos pontos testados em 390 × 844 | Teclado virtual/áreas seguras em aparelho físico não validados |
 | Busca/mapa | Catálogo privado sob permissões; seleção sincronizada mapa/lista/detalhes validada com fixtures | Fonte comercial não configurada; Google Places/Maps bloqueados |
 | Auditorias/IA | Adaptadores PageSpeed e OpenAI/Responses, tarefas/cotas e estados de falha; respostas simuladas válidas e de erro nas etapas correspondentes | Nenhuma análise/geração real validada; faltam chaves, evidências, limites e configuração |
-| CRM/Auth/RLS | Login/proteção/logout com fixture HTTP; adicionar, deduplicar, mudar etapa e anotar com SQL; isolamento A/B e tentativa indevida exercitados em PostgreSQL/PGlite | Supabase Auth/PostgREST hospedado e gravação no ambiente final ainda não validados |
-| GitHub/CI | [Repositório publicado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds); tipos/lint/build e dez casos essenciais aprovados entre [execução inicial](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159440361) e [reteste direcionado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159814737) | Execução inicial preserva a falha corrigida; reteste parcial. [Production disponível](https://ag-captura-de-leed.vercel.app), fluxos autenticados pendentes; sem Preview configurada |
+| CRM/Auth/RLS | Cobertura anterior com fixtures/SQL; agora também login real, abertura da prospecção e salvar/reler um registro no Supabase/Vercel, com owner e 22 tabelas públicas RLS | Isolamento A/B e tentativas indevidas seguem com evidência do harness; não foram repetidos entre contas reais em produção. Recuperação/e-mail do usuário pendente |
+| GitHub/CI | [Repositório publicado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds); tipos/lint/build e dez casos essenciais aprovados entre [execução inicial](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159440361) e [reteste direcionado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159814737) | Execução inicial preserva a falha corrigida; reteste parcial. [Production](https://ag-captura-de-leed.vercel.app) com login/CRM conferidos; Preview não configurada |
 
 Esta conferência reutiliza evidências de [VALIDACAO-ETAPA-2.md](docs/VALIDACAO-ETAPA-2.md), [VALIDACAO-CONSOLIDADA.md](docs/VALIDACAO-CONSOLIDADA.md) e [ACOMPANHAMENTO.md](docs/ACOMPANHAMENTO.md). Não representa outra rodada de testes nem certifica integrações ainda sem acesso.
 
@@ -202,6 +206,6 @@ Páginas/layouts são Server Components por padrão. Formulários e demais inter
 
 - Verificações e evidências desta etapa: [ACOMPANHAMENTO.md](docs/ACOMPANHAMENTO.md).
 - Versões exatas, fontes oficiais e decisão de compatibilidade do ESLint: [VERSOES.md](docs/VERSOES.md).
-- GitHub confirmado: [AndersonGehrkeDev/Ag-Captura-de-Leeds](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds). Vercel [publicada](https://ag-captura-de-leed.vercel.app) para uso pessoal não comercial; Supabase ainda precisa de acesso administrativo/configuração. Evidências: [PUBLICACAO.md](docs/PUBLICACAO.md) e [ACOMPANHAMENTO.md](docs/ACOMPANHAMENTO.md).
-- Auth SSR, perfil, workspaces e convites foram implementados/testados localmente. Aplicação das migrações/configuração em Supabase, templates/e-mails reais, owner confirmado, validação com contas reais e integrações comerciais permanecem pendentes.
+- GitHub confirmado: [AndersonGehrkeDev/Ag-Captura-de-Leeds](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds). Vercel [publicada](https://ag-captura-de-leed.vercel.app), Supabase dedicado configurado e login/CRM conferidos. Evidências: [PUBLICACAO.md](docs/PUBLICACAO.md) e [ACOMPANHAMENTO.md](docs/ACOMPANHAMENTO.md).
+- Production: migrações, Auth/callbacks, owner e CRM configurados; login real e persistência conferidos. Entrega de e-mail/definição de senha pelo usuário, convites adicionais, isolamento entre duas contas reais e integrações externas ainda não foram validados. E-mails personalizados exigem configuração de SMTP permitida pelo provedor; nenhum serviço foi contratado.
 - Prospecção tem demonstração explícita e busca condicionada a fonte autorizada. Módulos do menu/CRM foram implementados e verificados com fixtures; uso comercial real depende de configuração e validação no ambiente destino.

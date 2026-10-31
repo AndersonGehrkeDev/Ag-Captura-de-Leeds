@@ -2,6 +2,8 @@
 
 Implementado em 27/10/2026 com `@supabase/ssr` 0.12.7 e `@supabase/supabase-js` 2.118.0, Next.js 16.4.3. O código inicia sem chaves: `/login` informa a configuração pendente e mantém o formulário indisponível. `/prospeccao/demonstracao` continua público, com fixtures visíveis e nenhuma sessão/gravação real.
 
+**Production em 31/10/2026:** projeto dedicado `omvbcuistwursfjopzmb`, dez migrações aplicadas, cadastro público fechado, Site URL/callbacks exatos e proprietário provisionado administrativamente a partir da identidade Supabase autorizada. Login com senha, prospecção autenticada e salvar/reler um registro CRM passaram no domínio Vercel. A senha operacional gerada para o bootstrap não foi publicada; o usuário define a própria por `/recuperar-senha`, iniciando e abrindo o link no mesmo navegador para preservar PKCE. Entrega/consumo do e-mail e escolha da senha pelo usuário continuam pendentes.
+
 ## Configuração do ambiente
 
 Configure diretamente em `.env.local` ou nas variáveis do ambiente Vercel, nunca no chat:
@@ -18,7 +20,7 @@ Após configurar ou alterar a origem, reinicie/reimplante o servidor. O cliente 
 
 ## Painel Supabase
 
-1. Aplique **todas as migrações versionadas** na ordem indicada em [BANCO-DE-DADOS.md](BANCO-DE-DADOS.md) (atualmente seis). O schema `private` não deve ser exposto na Data API.
+1. Em nova instalação, aplique somente as migrações pendentes na ordem de [BANCO-DE-DADOS.md](BANCO-DE-DADOS.md) (atualmente dez; já aplicadas na Production dedicada). O schema `private` não deve ser exposto na Data API.
 2. Em **Authentication → URL Configuration**, defina **Site URL** igual a `NEXT_PUBLIC_APP_URL`, sem barra final. Use um projeto/ambiente apropriado para cada origem. Não derive a origem de `Host`, `X-Forwarded-Host` ou parâmetros enviados pelo usuário.
 3. Em configuração de usuários/Auth, mantenha **Allow new users to sign up desativado** para uso interno por convite. O bloqueio do aplicativo sozinho não bloqueia chamadas diretas ao Auth. Para abrir o cadastro deliberadamente, habilite esse controle no Supabase **e** `AUTH_ALLOW_SIGNUP=true` no aplicativo. O cadastro nunca cria/associa automaticamente workspace ou owner.
 4. Habilite o provedor **Email**, **Confirm email**, senha mínima de **12 caracteres**, com maiúscula, minúscula e número. Usuários existentes com senha antiga ainda podem entrar; a política da aplicação é aplicada à criação/redefinição de senhas.
@@ -38,7 +40,7 @@ https://seu-dominio.example/auth/callback?next=/redefinir-senha
 
 Para desenvolver em `localhost:3000`, use os mesmos dois caminhos com `http://localhost:3000`. Se usar `127.0.0.1`, altere tanto o ambiente quanto Site URL/allowlist para essa origem; os cookies e a verificação de Origin exigem consistência. O config local usa `127.0.0.1:3000`. Em produção, não libere wildcards de outros projetos/domínios.
 
-Copie o HTML versionado para **Authentication → Email Templates** do projeto hospedado:
+Quando a configuração de e-mail do provedor permitir, copie o HTML versionado para **Authentication → Email Templates** do projeto hospedado. No Free atual com e-mail padrão, a API recusou personalização: foram mantidos os templates nativos, sem contratar SMTP/upgrade. O primeiro acesso usa recuperação PKCE; não enviar convite baseado em fragmento supondo que ele funcione com os templates personalizados abaixo.
 
 | Template do Supabase | Arquivo | Destino do link |
 | --- | --- | --- |
@@ -78,6 +80,6 @@ Papel owner não é oferecido em convites. Remoção/rebaixamento direto do owne
 
 Comandos, evidências, matriz de telas e limites estão em [VALIDACAO-AUTH.md](VALIDACAO-AUTH.md). Os testes locais usam a aplicação/SDK reais com uma fixture HTTP e SQL/RLS executados em PostgreSQL PGlite; **não são testes do serviço Supabase Auth/SMTP real**.
 
-Ainda falta aplicar migrações/configuração/templates no projeto Supabase autorizado, provisionar owner real e validar com duas contas reais, e-mails recebidos, PKCE/OTP, cookies no domínio HTTPS/CDN, expiração/rotação e concorrência na stack completa. Não há projeto remoto conectado ou deploy realizado nesta entrega.
+Em 31/10, migrações/configuração/owner e login/CRM reais foram concluídos na base dedicada, conforme PUBLICACAO.md. Permanecem sem nova validação: duas contas reais isoladas, e-mails recebidos e recuperação PKCE/OTP pelo usuário, expiração/rotação e concorrência amplas. Templates personalizados permanecem dependentes de provedor/SMTP compatível. Os resultados antigos com fixture não foram reclassificados como testes remotos.
 
 Fontes oficiais consultadas em 27/10/2026: [SSR e cookies](https://supabase.com/docs/guides/auth/server-side/creating-a-client?framework=nextjs), [verificação e cache](https://supabase.com/docs/guides/auth/server-side/advanced-guide), [senha e recuperação](https://supabase.com/docs/guides/auth/passwords), [convite administrativo](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail), [templates](https://supabase.com/docs/guides/auth/auth-email-templates), [templates locais](https://supabase.com/docs/guides/local-development/customizing-email-templates), [redirects](https://supabase.com/docs/guides/auth/redirect-urls), [verifyOtp](https://supabase.com/docs/reference/javascript/auth-verifyotp) e [Proxy Next.js 16](https://nextjs.org/docs/app/api-reference/file-conventions/proxy). A API de cookies/Proxy também foi conferida na documentação empacotada do Next instalado.

@@ -133,3 +133,9 @@ Verificações direcionadas: typecheck, ESLint dos módulos alterados e três fl
 Sem pacotes novos ou mudancas de lockfile. Reutilizados Next App Router/Server Components, Supabase SSR/SDK, RLS, Zod, componentes shadcn/Radix, mapa local, Auth/perfil/workspaces/convites, CRM e politica existentes. Migracao 010 acrescenta somente triggers privados para a preferencia Nao contatar em campanhas; permanecem 22 tabelas publicas, 14 funcoes publicas e 8 enums nos tipos gerados pelas dez migracoes.
 
 Verificacao direcionada: typecheck e lint dos modulos tocados aprovados; um caso de navegacao/acoes no Chromium com fixture HTTP/Auth/RLS/PGlite aprovado. Sem pesquisa externa, instalacao, APIs pagas, build ou suite consolidada. Comandos, escopos e limitacoes: [PAGINAS-DO-MENU.md](PAGINAS-DO-MENU.md).
+
+## Publicação real — 31/10/2026
+
+Supabase dedicado `ag-prospeccao`, Free, sa-east-1: **PostgreSQL 17.11**, confirmado por `current_setting('server_version')`, com as dez migrações e 22 tabelas públicas RLS. CLI Supabase **2.122.0**, Vercel CLI **65.9.0** temporário via npm e runtime Vercel **22.x**. SDKs/pacotes/lockfile da aplicação não foram alterados. A versão PGlite 18.6 dos testes anteriores continua sendo somente o harness; não é a versão remota.
+
+Configuração pela API oficial [projetos](https://supabase.com/docs/reference/api/v1-create-a-project), [Auth](https://supabase.com/docs/reference/api/v1-update-auth-service-config), [PostgREST](https://supabase.com/docs/reference/api/v1-update-postgrest-service-config) e [chaves](https://supabase.com/docs/reference/api/v1-get-project-api-keys), consultadas para essa operação. Organização Free confirmada antes de criar a segunda base; sem upgrade/compute extra/SMTP contratado. E-mail padrão do Free recusou personalização de templates, mantidos nativos. Login real e salvar/reler registro CRM passaram na Vercel; resultados e limites em [PUBLICACAO.md](PUBLICACAO.md).

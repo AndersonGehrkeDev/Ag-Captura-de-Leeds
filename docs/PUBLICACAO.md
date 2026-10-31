@@ -2,7 +2,11 @@
 
 Preparação em 30/10/2026. Destino indicado pelo usuário e acesso de escrita confirmados: [AndersonGehrkeDev/Ag-Captura-de-Leeds](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds). O repositório encontrado é público e estava vazio; sua visibilidade foi preservada. Commit inicial da aplicação: `b8468f2`.
 
-**Atualização de 31/10/2026:** usuário esclareceu uso próprio não comercial. Projeto Vercel existente `ag-captura-de-leed` e integração Supabase foram encontrados e preservados. Publicada a correção de origem em [https://ag-captura-de-leed.vercel.app](https://ag-captura-de-leed.vercel.app), deploy `dpl_7w2grt96ALWDxrBxm2xJXWpPDJuv` Ready. Isso confirma hospedagem e rotas públicas/proteção de acesso, **não** login real, migrações, owner ou gravação de lead. Preview continua pendente. As instruções comerciais de preparação abaixo só se aplicam se houver uso comercial futuro.
+**Atualização inicial de 31/10/2026 (histórico):** usuário esclareceu uso próprio não comercial. Projeto Vercel existente `ag-captura-de-leed` e integração Supabase foram encontrados e preservados. Publicada a correção de origem em [https://ag-captura-de-leed.vercel.app](https://ag-captura-de-leed.vercel.app), deploy `dpl_7w2grt96ALWDxrBxm2xJXWpPDJuv` Ready. Naquele momento somente hospedagem/rotas públicas estavam conferidas; a conclusão posterior está abaixo. As instruções comerciais de preparação só se aplicam se houver uso comercial futuro.
+
+**Configuração concluída após autorização em 31/10/2026:** a base inicialmente ligada à Vercel pertencia a outro sistema, com tabelas incompatíveis. Ela foi preservada. Criado **`omvbcuistwursfjopzmb` / `ag-prospeccao`**, Free, sa-east-1, PostgreSQL **17.11**; aplicadas somente as dez migrações pendentes e conferida correspondência local/remota. Workspace AG ativo, proprietário administrativo e executor CRM configurados. Novo deploy **`dpl_DTfoUj1acVfxxRKPtThfS7ADmBxL`**, Ready, Node 22.x. **Login com senha, abertura da prospecção autenticada e salvar/reler um registro CRM passaram em produção.** A recuperação por e-mail/definição da senha pelo usuário não foi executada.
+
+Primeiro acesso do usuário: [Recuperar acesso](https://ag-captura-de-leed.vercel.app/recuperar-senha), usando o e-mail da identidade Supabase autorizada; iniciar e abrir o link no mesmo navegador (PKCE). A senha operacional do bootstrap não é publicada. Templates nativos mantidos, pois Free com provedor padrão recusou personalização; nenhum SMTP/upgrade foi contratado. Preview, fontes externas, auditorias e IA continuam com pendências próprias.
 
 ## Situação verificada
 
@@ -14,9 +18,9 @@ Preparação em 30/10/2026. Destino indicado pelo usuário e acesso de escrita c
 | GitHub | **Publicado** em `main`: `b8468f2` (aplicação), `ab8dbd8` (CI/publicação) e `eb9ee85` (origens no build de teste), pushes confirmados |
 | CI | Um job com tipos/lint/build e dez casos essenciais. [Primeira execução](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159440361): verificações e 8 casos passaram, seleção falhou por origem incorporada no build. [Reteste direcionado](https://github.com/AndersonGehrkeDev/Ag-Captura-de-Leeds/actions/runs/41159814737): **2 casos restantes aprovados** após corrigir o workflow |
 | Vercel | Conta `lazzaribr-6231`, equipe `AndersonGehrkeDev`, Hobby mantido para uso pessoal não comercial esclarecido pelo usuário. Projeto existente reaproveitado, Node 22.x, `NEXT_PUBLIC_APP_URL` e `AUTH_ALLOW_SIGNUP=false` cadastrados em Production; novo deploy Ready |
-| Supabase | Integração Vercel já contém variáveis Production, projeto `gajopgslkyhsnsehcrob`. Health Auth 200; acesso administrativo CLI ausente, conector ainda sem conexão confirmada. Nenhuma migração, usuário, callback, hash ou limite alterado |
+| Supabase | Base dedicada `omvbcuistwursfjopzmb`, Free/sa-east-1/PG17.11; dez migrações, 22 tabelas públicas com RLS, owner/workspace ativos e hash CRM. Projeto anterior `gajopgslkyhsnsehcrob` é de outro sistema e não recebeu migrações/configuração AG |
 | Google | Sem projeto/chaves acessíveis; APIs Places/Maps continuam bloqueadas pela política. Nenhuma API ativada ou chave exposta |
-| Deploy / URLs | Production: **https://ag-captura-de-leed.vercel.app**. `/login` 200 e `/prospeccao` 307 para login no domínio correto, sem localhost. Preview e login/gravação autenticados pendentes |
+| Deploy / URLs | Production: **https://ag-captura-de-leed.vercel.app**. Login, prospecção autenticada e persistência CRM aprovados. Primeiro acesso via recuperação e Preview seguem sem verificação/configuração própria |
 
 Os arquivos publicáveis foram conferidos antes do commit/push. Há uma exceção exata no scanner para a chave fictícia do teste que recusa chave privilegiada no cliente; outros valores no mesmo arquivo continuam bloqueados. Seeds e fixtures sintéticas continuam exclusivas de desenvolvimento/testes; não são configuração de produção.
 
@@ -31,7 +35,9 @@ Os arquivos publicáveis foram conferidos antes do commit/push. Há uma exceçã
 
 Resultado desta entrega: instalação/scanner/tipos/lint/build e os dez casos essenciais **passaram ao combinar a execução inicial e o reteste dos dois casos falhos**. A primeira execução continua vermelha e não foi apagada. A segunda é parcial por escolha explícita, sem repetir tipos/lint/serviços/SQL aprovados; um rebuild foi indispensável para remover a origem fixa do artefato. Commits finais só de documentação usam `[skip ci]` para não criar outra bateria. Não se declara uma nova execução integral aprovada no último SHA documental.
 
-## Passos manuais indispensáveis por falta de acesso
+## Procedimento para nova instalação e pendências restantes
+
+A Production atual já foi configurada conforme a atualização acima. Não repetir criação de projeto, migrações, troca de owner ou bootstrap apenas para entrar. Os passos abaixo servem para outra instalação/Preview ou consulta operacional; o usuário atual precisa definir sua própria senha pela recuperação.
 
 ### 1. Vercel
 
@@ -112,7 +118,11 @@ No ambiente e workspace corretos, executar somente:
 2. Abrir `/prospeccao`, conferir origem HTTPS e estado da fonte. Não tratar demo/fixture como busca real.
 3. Adicionar um lead de fonte autorizada, se disponível; caso contrário cadastrar uma **identificação interna** em `/leads`, identificando-a como verificação de publicação. Recarregar e confirmar persistência no mesmo workspace. Nunca copiar conteúdo Google para produzir esse teste.
 
-Registrar URL, SHA, ambiente/workspace e resultado, sem senha, token ou conteúdo privado. Não executar a bateria geral novamente. Em 31/10 foram conferidos somente `/login` 200 e `/prospeccao` sem sessão, 307 para o login no próprio domínio; ambos com no-store. O Auth do Supabase respondeu 200 em health. **Login real, associação, migrações e gravação de lead não foram validados**, aguardando conexão administrativa e primeiro usuário.
+Registrar URL, SHA, ambiente/workspace e resultado, sem senha, token ou conteúdo privado. Não executar a bateria geral novamente. Após a configuração da base dedicada em 31/10, os três passos passaram no Chromium com conta real, Supabase Auth/PostgREST/PostgreSQL 17.11 e Vercel. Criado o registro **Verificação de publicação — registro interno (31/10/2026)**, ID `eaf180f8-6bf0-40cb-8bb0-a854d2e396d8`, preservado e recuperado após reload. É uma atividade interna de verificação, sem empresa/contato externo inventado. Sessão operacional encerrada; sem trace/HAR, senha em logs ou envio de e-mail de teste.
+
+O bootstrap administrativo criou a conta correspondente à identidade autenticada no CLI, confirmou-a administrativamente e atribuiu somente o workspace AG. Senha operacional aleatória e chaves foram protegidas por DPAPI em `.local-data`, ignoradas pelo Git. A aplicação comum recebeu apenas URL/chave publicável e prova CRM; `SUPABASE_SECRET_KEY` ficou vazio. Variáveis herdadas da base anterior foram removidas somente deste projeto Vercel. A instalação legada da integração e os outros projetos permaneceram; o CLI de marketplace não suportou alterar esse vínculo legado, portanto não foi alegada desinstalação/desconexão global.
+
+Não executados nesta fase: nova suíte, outras larguras/navegadores, isolamento entre duas contas reais de produção, recuperação/e-mail/OTP do usuário, convites, auditoria/IA ou buscas comerciais reais. Busca própria/licenciada e permissões, credenciais/cotas PSI/IA/exportação e Preview isolada continuam pendentes. A conta Free já usa o projeto anterior e o projeto AG; não pausar/deletar o outro nem contratar terceiro projeto/branch para contornar limites sem instrução.
 
 ## Rollback curto
 
