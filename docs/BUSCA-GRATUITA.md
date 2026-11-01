@@ -32,7 +32,7 @@ Overture é uma base aberta consultada diretamente, não uma alegação de API n
 
 Aplicar somente migrações pendentes, sem reset/seeds. 011 cria cache/gate privado; 012 acrescenta namespace/política Overture, preservando histórico. Na AG dedicada, política é provisionada administrativamente a partir do owner existente; não há auto-claim.
 
-Servidor: `OPEN_DATA_CATALOG_ENABLED=true`, **`OPEN_DATA_PROVIDER=overture`**, `OPEN_DATA_WORKSPACE_ID`, `OPEN_DATA_REVIEWER_ID`, `FEATURE_CATALOG_SEARCH=true` e `FEATURE_CATALOG_DETAILS=true`. Reutilizar Supabase/`CRM_EXECUTOR_SECRET`/hash e `FEATURE_OWN_DATA_PERSISTENCE` para adicionar lead. Sem chaves Google. Flags de exportação/IA não concedem licença. `OWNED_CATALOG_FILE` tem prioridade, sem misturar fontes.
+Servidor: `OPEN_DATA_CATALOG_ENABLED=true`, **`OPEN_DATA_PROVIDER=overture`**, `OPEN_DATA_WORKSPACE_ID`, `OPEN_DATA_REVIEWER_ID`, `FEATURE_CATALOG_SEARCH=true` e `FEATURE_CATALOG_DETAILS=true`. Reutilizar Supabase/`CRM_EXECUTOR_SECRET`/hash e `FEATURE_OWN_DATA_PERSISTENCE` para cache e adição de leads. Sem chaves Google. Flags de exportação/IA não concedem licença. `OWNED_CATALOG_FILE` tem prioridade, sem misturar fontes.
 
 `data/open/municipios.json` é público e incluído no tracing; empresas/cache/CRM ficam fora de Git/assets públicos. Atualização administrativa sem credenciais: `node scripts/open-data/update-municipalities.mjs`; revisar diff e publicar. Release Overture está fixada em `model.ts`: atualizar após revisar schema, disponibilidade e licenças; sem atualização silenciosa para fonte desconhecida.
 
@@ -46,6 +46,6 @@ Google continua bloqueado; Geoapify usa créditos. [Ohsome v2](https://heigit.or
 
 ## Verificação e rollback
 
-Testes direcionados de transporte, consulta/proveniência/cache/SQL; CI essencial acrescenta seis casos sem rede externa. A consulta gratuita real Overture passou por opt-in local após corrigir a instalação oficial httpfs. Ela só roda com `AG_LIVE_OVERTURE_TEST=true`, ausente na CI. Conferência de publicação, mapa e CRM consta no acompanhamento após execução na hospedagem.
+Testes direcionados de transporte, consulta/proveniência/cache/SQL; CI essencial acrescenta sete casos sem rede externa. A consulta gratuita real Overture passou por opt-in local após corrigir a instalação oficial httpfs. Ela só roda com `AG_LIVE_OVERTURE_TEST=true`, ausente na CI. Conferência de publicação, mapa e CRM consta no acompanhamento após execução na hospedagem.
 
 Rollback: desabilitar `OPEN_DATA_CATALOG_ENABLED` e redeployar ou promover o deployment anterior da Vercel; reverter commit no Git se necessário. Manter migrações aditivas e dados, sem reset/drop. Não há migração automática na CI.

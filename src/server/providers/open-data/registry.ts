@@ -33,7 +33,7 @@ export function buildOpenManifest(records: readonly OpenRecord[], workspaceId: s
     purposes: ["prospecting", "crm"], fields: ["external_id", "name", "category", "website_url", "address", "city", "coordinates"],
     actions: ["display", "persist"], retentionDays: 365, attribution: credit }, {
       id: ibgeLicenseId, workspaceId, provider: "licensed", sourceReference: "ibge:municipalities", evidenceReference: "https://www.gov.br/conecta/catalogo/apis/registro-referencia-municipios",
-      approvedBy: reviewerId, approvedAt, validUntil: "2027-10-31T23:59:59Z", revokedAt: null, purposes: ["prospecting"], fields: ["city"], actions: ["display"], retentionDays: null,
+      approvedBy: reviewerId, approvedAt, validUntil: "2027-10-31T23:59:59Z", revokedAt: null, purposes: ["prospecting"], fields: ["city"], actions: ["display", "persist"], retentionDays: 365,
       attribution: "Municípios: IBGE / API de Localidades · https://servicodados.ibge.gov.br/api/docs/localidades",
     }],
     sources: [{ id: overture ? overtureSourceId : osmSourceId, label: overture ? "Overture Maps — Brasil (dados abertos)" : "OpenStreetMap — Brasil (dados abertos)", provider: "licensed", crmReferencePolicyId: overture ? overturePolicyId : osmPolicyId,

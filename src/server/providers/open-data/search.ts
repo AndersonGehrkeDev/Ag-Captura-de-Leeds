@@ -10,7 +10,7 @@ import { municipalities } from "./municipalities";
 import { buildOpenManifest } from "./registry";
 import { openDataRepository } from "./repository";
 import { OpenDataError, overpassQuery, searchOverpass } from "./overpass";
-import { ibgeCredit, openCacheSchema, openDataId, osmCredit, osmSourceId, overtureCredit, overtureRelease, overtureSourceId } from "./model";
+import { ibgeCredit, openCacheSchema, openDataId, osmCredit, osmSourceId, overtureCredit, overtureRelease, overtureSourceId, type OpenCache } from "./model";
 
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 export async function executeOpenSearch(command: SearchApiRequest & { operation: "options" | "search" }, signal: AbortSignal,
@@ -20,12 +20,22 @@ export async function executeOpenSearch(command: SearchApiRequest & { operation:
     const origin = process.env.OPEN_DATA_PROVIDER === "overture" ? "overture" : "osm";
     const overture = origin === "overture"; const sourceId = overture ? overtureSourceId : osmSourceId;
     const reviewerId = z.uuid().parse(process.env.OPEN_DATA_REVIEWER_ID);
+    function governed(cache: Pick<OpenCache, "records">) {
+      const manifest = buildOpenManifest(cache.records, command.workspaceId, reviewerId, origin); const workspace = manifest.workspaces[0]!; const source = workspace.sources[0]!;
+      const policy: PolicyContext = { workspaceId: command.workspaceId, mode: "production", now: new Date(), flags: context.flags,
+        provenance: new Map(workspace.provenance.map((r) => [r.id, r])), licenses: new Map(workspace.licenses.map((l) => [l.id, l])) };
+      return { source, policy };
+    }
+    const initial = governed({ records: [] });
+    if (!authorizeData(initial.source.provenanceId, "display", "prospecting", initial.policy).allowed) return integrationFailure("permission_denied");
     const cities = await municipalities(signal);
     if (command.operation === "options") {
       if (!await context.authorize(command.workspaceId)) return integrationFailure("access_denied");
       return { ok: true, data: { sources: [{ id: sourceId, label: overture ? "Overture Maps — Brasil (dados abertos)" : "OpenStreetMap — Brasil (dados abertos)", locations: cities.map((city) => ({ id: city.id, label: city.label, radiusAvailable: false, attributions: [] })) }] } };
     }
     const request = command.request; const city = cities.find((entry) => entry.id === request.locationId);
+    if (!context.flags.ownPersistence) return integrationFailure("feature_disabled");
+    if (!authorizeData(initial.source.provenanceId, "persist", "prospecting", initial.policy).allowed) return integrationFailure("permission_denied");
     if (!city || request.sourceId !== sourceId || request.pageSize !== 20 || request.radiusKm !== "city") return integrationFailure("invalid_input");
     const query = overpassQuery(city.code, request); // Valida antes de reservar ou transmitir.
     const key = hash([origin, overture ? overtureRelease : "live", command.workspaceId, city.code, query]);
@@ -40,14 +50,18 @@ export async function executeOpenSearch(command: SearchApiRequest & { operation:
         cache = await provider(city.code, city.label, request, signal);
         signal.throwIfAborted();
         if (!await context.authorize(command.workspaceId)) return integrationFailure("access_denied");
+        const storing = governed(cache);
+        // Cache também é persistência: validar cada campo e todos os ancestrais antes de gravar.
+        for (const company of storing.source.companies) {
+          const ids = [company.reference.provenanceId, ...[company.name, company.category, company.website, company.address, company.city].flatMap((field) => field.state === "known" ? [field.data.provenanceId] : []), ...(company.coordinates ? [company.coordinates.provenanceId] : [])];
+          if (ids.some((id) => !authorizeData(id, "persist", "prospecting", storing.policy).allowed || !authorizeData(id, "display", "prospecting", storing.policy).allowed)) return integrationFailure("permission_denied");
+        }
         await repository(command.workspaceId, "save", { key, token: reservation.token, body: cache });
       } finally { await repository(command.workspaceId, "release", { token: reservation.token }).catch(() => {}); }
     }
     signal.throwIfAborted();
     if (cache.records.some((record) => record.origin !== origin)) return integrationFailure("permission_denied");
-    const manifest = buildOpenManifest(cache.records, command.workspaceId, reviewerId, origin); const workspace = manifest.workspaces[0]!; const source = workspace.sources[0]!;
-    const policy: PolicyContext = { workspaceId: command.workspaceId, mode: "production", now: new Date(), flags: context.flags,
-      provenance: new Map(workspace.provenance.map((r) => [r.id, r])), licenses: new Map(workspace.licenses.map((l) => [l.id, l])) };
+    const { source, policy } = governed(cache);
     if (!authorizeData(source.provenanceId, "display", "prospecting", policy).allowed) return integrationFailure("permission_denied");
     const signature = hash([key, cache.observedAt]); let offset = 0;
     if (request.cursor) {
@@ -64,6 +78,11 @@ export async function executeOpenSearch(command: SearchApiRequest & { operation:
       scope: overture ? `Cidade declarada na Overture e caixa envolvente da malha IBGE ${city.code}; não é teste exato da divisa nem censo. Release ${overtureRelease}, até 60 registros por consulta. Consulta: ${cache.observedAt}. Cache por até 24 horas.` : `Área municipal cadastrada no OSM pelo código IBGE ${city.code}; sem garantia de divisa oficial ou cobertura completa. Até 60 registros por consulta, sem varredura. Consulta: ${cache.observedAt}. Cache por até 24 horas.`,
       scopeAttributions: [overture ? overtureCredit : osmCredit, ibgeCredit] } };
   } catch (error) {
+    if (!signal.aborted) {
+      // Somente categorias fechadas/SQLSTATE, nunca erro bruto, URL, argumento RPC ou conteúdo externo.
+      const diagnostic = error instanceof OpenDataError ? error.diagnostic ?? error.code : error instanceof Error && /module|binding|shared object/i.test(error.message) ? "adapter_load" : "unexpected";
+      console.warn(`ag_open_data_failure:${diagnostic}`);
+    }
     const failure = integrationFailure(error instanceof OpenDataError ? error.code : signal.aborted ? signal.reason?.name === "TimeoutError" ? "timeout" : "cancelled" : "provider_unavailable");
     return error instanceof OpenDataError && error.publicMessage && !failure.ok ? { ok: false, error: { ...failure.error, message: error.publicMessage } } : failure;
   }

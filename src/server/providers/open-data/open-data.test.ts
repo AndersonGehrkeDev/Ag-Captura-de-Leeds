@@ -84,4 +84,16 @@ describe("fonte aberta nacional, sem créditos", () => {
       expect(await call(workspace, "reserve")).toEqual({ allowed: false });
     } finally { await db.close(); }
   });
+  it("autoriza todos os campos do cache antes da escrita e não consulta fonte com persistência desativada", async () => {
+    vi.stubEnv("OPEN_DATA_REVIEWER_ID", owner); vi.stubEnv("OPEN_DATA_PROVIDER", "osm");
+    const cache = normalizeOverpass(fixture, "Pelotas — RS", new Date().toISOString());
+    const repository = vi.fn(async (_workspace: string, action: string) => action === "cache" ? null : action === "reserve" ? { allowed: true, token: "22222222-2222-4222-8222-222222222222" } : {});
+    const provider = vi.fn(async () => cache); const authorize = vi.fn(async () => owner);
+    const command = { operation: "search" as const, workspaceId: workspace, request: { sourceId: osmSourceId, locationId: openDataId("ibge:4314407"), location: "Ignorado", mode: "free" as const, term: "", radiusKm: "city" as const, pageSize: 20, cursor: null } };
+    expect(await executeOpenSearch(command, new AbortController().signal, { authorize, flags, repository, provider })).toMatchObject({ ok: true });
+    expect(repository.mock.calls.map((args) => args[1])).toEqual(["cache", "reserve", "save", "release"]);
+    repository.mockClear(); provider.mockClear();
+    expect(await executeOpenSearch(command, new AbortController().signal, { authorize, flags: { ...flags, ownPersistence: false }, repository, provider })).toMatchObject({ ok: false, error: { code: "feature_disabled" } });
+    expect(repository).not.toHaveBeenCalled(); expect(provider).not.toHaveBeenCalled();
+  });
 });

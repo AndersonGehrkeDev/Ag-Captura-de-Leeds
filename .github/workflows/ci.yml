@@ -75,7 +75,7 @@ jobs:
       - name: Isolamento SQL de workspaces (3 verificações)
         if: ${{ !inputs.retest_selection }}
         run: npm run db:test -- --grep '^SELECT leads:|^UPDATE/DELETE invisíveis'
-      - name: Fontes gratuitas nacionais e cache SQL (6 casos, sem rede externa)
+      - name: Fontes gratuitas nacionais e cache SQL (7 casos, sem rede externa)
         if: ${{ !inputs.retest_selection }}
         run: npm test -- src/server/providers/open-data/open-data.test.ts src/server/providers/open-data/overture.test.ts
       - name: Instalar somente Chromium do Playwright fixado

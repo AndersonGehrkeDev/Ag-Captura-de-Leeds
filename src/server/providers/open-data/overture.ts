@@ -30,7 +30,7 @@ export async function municipalityBounds(code: string, signal: AbortSignal): Pro
   if (!/^\d{7}$/.test(code)) throw new OpenDataError("invalid_input");
   const url = `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${code}?formato=application/vnd.geo%2Bjson&qualidade=minima`;
   const response = await fetch(url, { signal, redirect: "error", cache: "no-store" });
-  if (!response.ok || !response.body) throw new OpenDataError("provider_unavailable");
+  if (!response.ok || !response.body) throw new OpenDataError("provider_unavailable", undefined, `ibge_http_${response.status}`);
   const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let bytes = 0;
   try { for (;;) { const { value, done } = await reader.read(); if (done) break; bytes += value.length; if (bytes > 1024 * 1024) { await reader.cancel(); throw new OpenDataError("limit_reached"); } chunks.push(value); } } finally { reader.releaseLock(); }
   const geo = z.object({ features: z.array(z.object({ geometry: z.object({ type: z.enum(["Polygon", "MultiPolygon"]), coordinates: z.unknown() }) })).min(1).max(100) }).parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
@@ -54,7 +54,7 @@ export async function searchOverture(code: string, city: string, request: Pick<S
   const connection = await instance.connect(); const stop = () => connection.interrupt(); signal.addEventListener("abort", stop, { once: true });
   try {
     signal.throwIfAborted();
-    await connection.run("INSTALL httpfs;LOAD httpfs;SET s3_region='us-west-2';SET s3_access_key_id='';SET s3_secret_access_key='';SET http_timeout=5;SET http_retries=0;");
+    await connection.run("INSTALL httpfs;LOAD httpfs;SET s3_region='us-west-2';SET s3_access_key_id='';SET s3_secret_access_key='';SET s3_session_token='';SET http_timeout=5;SET http_retries=0;");
     signal.throwIfAborted();
     // Fonte e release fixas, SQL parametrizado e somente campos necessários. Sem credenciais AWS.
     const sql = `SELECT id,names.primary AS name,basic_category AS category,taxonomy.primary AS subtype,websites[1] AS website,addresses[1].freeform AS address,bbox.xmin AS longitude,bbox.ymin AS latitude
@@ -69,6 +69,11 @@ export async function searchOverture(code: string, city: string, request: Pick<S
     const result = await connection.runAndReadAll(sql, [...bounds, city.split(" — ")[0]!, term.category, term.name]);
     signal.throwIfAborted();
     return normalizeOverture(result.getRowObjectsJson(), city, new Date().toISOString());
-  } catch (error) { if (signal.aborted) throw error; throw new OpenDataError("provider_unavailable"); }
+  } catch (error) {
+    if (signal.aborted) throw error;
+    const message = error instanceof Error ? error.message : "";
+    const diagnostic = error instanceof Error && error.name === "ZodError" ? "projection" : /extension|install/i.test(message) ? "duckdb_extension" : /memory/i.test(message) ? "duckdb_memory" : /SSL|certificate/i.test(message) ? "duckdb_tls" : /403/.test(message) ? "duckdb_http403" : /404/.test(message) ? "duckdb_http404" : /HTTP|IO Error|connect/i.test(message) ? "duckdb_network" : /Binder|Catalog|Parser/i.test(message) ? "duckdb_schema" : "duckdb_runtime";
+    throw new OpenDataError("provider_unavailable", undefined, diagnostic);
+  }
   finally { signal.removeEventListener("abort", stop); connection.closeSync(); instance.closeSync(); }
 }

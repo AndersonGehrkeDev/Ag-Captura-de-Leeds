@@ -4,7 +4,7 @@ import { normalizeSearchText } from "@/domain/integrations/categories";
 import type { SearchRequest, IntegrationErrorCode } from "@/domain/integrations/contracts";
 import { openCacheSchema, type OpenCache, type OpenRecord } from "./model";
 
-export class OpenDataError extends Error { constructor(readonly code: IntegrationErrorCode, readonly publicMessage?: string) { super(code); } }
+export class OpenDataError extends Error { constructor(readonly code: IntegrationErrorCode, readonly publicMessage?: string, readonly diagnostic?: string) { super(code); } }
 const endpoint = "https://overpass.private.coffee/api/interpreter";
 const niches: Record<string, string[]> = {
   restaurants: ['["amenity"="restaurant"]'], pizza: ['["amenity"~"^(restaurant|fast_food)$"]["cuisine"~"pizza"]', '["amenity"~"^(restaurant|fast_food)$"]["name"~"pizza",i]'],
