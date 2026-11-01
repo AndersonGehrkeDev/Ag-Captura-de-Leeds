@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
@@ -19,33 +19,23 @@ export function overtureTerm(request: Pick<SearchRequest, "mode" | "term">) {
 }
 export function normalizeOverture(input: unknown[], city: string, observedAt: string): OpenCache {
   const rows = z.array(rawSchema).max(61).parse(input);
-  return openCacheSchema.parse({ observedAt, limited: rows.length > 60, records: rows.slice(0, 60).map((row) => {
+  const records = rows.slice(0, 60).map((row) => {
     let website: string | null = null;
     try { const url = new URL(row.website ?? ""); if (["http:", "https:"].includes(url.protocol) && !url.username && !url.password && url.href.length <= 2048) website = url.href; } catch {}
     return { origin: "overture", reference: `overture/${row.id}`, name: row.name, category: categories[row.subtype ?? ""] ?? categories[row.category ?? ""] ?? "Outro estabelecimento",
       website, address: row.address && row.address.length <= 500 ? row.address : null, city, latitude: row.latitude, longitude: row.longitude, observedAt };
-  }) });
+  });
+  return openCacheSchema.parse({ observedAt, limited: rows.length > 60, records: [...new Map(records.map((record) => [record.reference, record])).values()] });
 }
 export async function municipalityBounds(code: string, signal: AbortSignal): Promise<[number, number, number, number]> {
   if (!/^\d{7}$/.test(code)) throw new OpenDataError("invalid_input");
-  const url = `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${code}?formato=application/vnd.geo%2Bjson&qualidade=minima`;
-  const response = await fetch(url, { signal, redirect: "error", cache: "no-store" });
-  if (!response.ok || !response.body) throw new OpenDataError("provider_unavailable", undefined, `ibge_http_${response.status}`);
-  const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let bytes = 0;
-  try { for (;;) { const { value, done } = await reader.read(); if (done) break; bytes += value.length; if (bytes > 1024 * 1024) { await reader.cancel(); throw new OpenDataError("limit_reached"); } chunks.push(value); } } finally { reader.releaseLock(); }
-  const geo = z.object({ features: z.array(z.object({ geometry: z.object({ type: z.enum(["Polygon", "MultiPolygon"]), coordinates: z.unknown() }) })).min(1).max(100) }).parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-  const bounds: [number, number, number, number] = [180, 90, -180, -90]; let count = 0;
-  function walk(value: unknown, depth = 0) {
-    if (depth > 5 || !Array.isArray(value)) throw new OpenDataError("provider_unavailable");
-    if (value.length >= 2 && typeof value[0] === "number" && typeof value[1] === "number") {
-      const [x, y] = value as [number, number]; if (!Number.isFinite(x) || !Number.isFinite(y) || x < -75 || x > -28 || y < -35 || y > 6 || ++count > 50000) throw new OpenDataError("provider_unavailable");
-      bounds[0] = Math.min(bounds[0], x); bounds[1] = Math.min(bounds[1], y); bounds[2] = Math.max(bounds[2], x); bounds[3] = Math.max(bounds[3], y); return;
-    }
-    for (const child of value) walk(child, depth + 1);
-  }
-  geo.features.forEach((feature) => walk(feature.geometry.coordinates));
-  if (count < 3 || bounds[0] >= bounds[2] || bounds[1] >= bounds[3]) throw new OpenDataError("provider_unavailable");
-  return bounds;
+  const contents = await readFile(join(process.cwd(), "data/open/municipios-bounds.json"), { signal });
+  if (contents.length > 2 * 1024 * 1024) throw new OpenDataError("not_configured");
+  const data = z.object({ entries: z.array(z.strictObject({ code: z.string().regex(/^\d{7}$/), bounds: z.tuple([z.number().min(-75).max(-28), z.number().min(-35).max(6), z.number().min(-75).max(-28), z.number().min(-35).max(6)]) })).min(5500).max(6000) }).parse(JSON.parse(contents.toString("utf8")));
+  const entry = data.entries.find((item) => item.code === code);
+  if (!entry) throw new OpenDataError("not_found", "A malha deste município ainda não consta no recorte oficial disponível. Isso não significa ausência de empresas.");
+  if (entry.bounds[0] >= entry.bounds[2] || entry.bounds[1] >= entry.bounds[3]) throw new OpenDataError("not_configured");
+  return entry.bounds;
 }
 export async function searchOverture(code: string, city: string, request: Pick<SearchRequest, "mode" | "term">, signal: AbortSignal): Promise<OpenCache> {
   let phase = "geography";
@@ -56,7 +46,7 @@ export async function searchOverture(code: string, city: string, request: Pick<S
     phase = "temporary_directory";
     const directory = join(tmpdir(), "ag-overture-extensions"); await mkdir(directory, { recursive: true }); signal.throwIfAborted();
     phase = "engine_create";
-    instance = await DuckDBInstance.create(":memory:", { extension_directory: directory, memory_limit: "256MB", threads: "2" });
+    instance = await DuckDBInstance.create(":memory:", { home_directory: directory, extension_directory: directory, memory_limit: "256MB", threads: "2" });
     phase = "engine_connect";
     connection = await instance.connect(); signal.addEventListener("abort", stop, { once: true });
     phase = "engine_setup";
