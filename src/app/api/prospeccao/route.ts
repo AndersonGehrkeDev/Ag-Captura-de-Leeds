@@ -45,6 +45,8 @@ export async function POST(request: Request) {
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(process.env.OPEN_DATA_CATALOG_ENABLED === "true" ? 45000 : 8000)]);
   const stoppedResult = () => respond(integrationFailure(signal.reason?.name === "TimeoutError" ? "timeout" : "cancelled"));
   const operation = handle(request, signal).catch(() => signal.aborted ? stoppedResult() : respond(integrationFailure("provider_unavailable")));
+  // Aguarda interrupção/fechamento nativos e liberação da reserva antes de responder.
+  if (process.env.OPEN_DATA_CATALOG_ENABLED === "true") return await operation;
   let abort: () => void = () => {};
   const stopped = new Promise<NextResponse>((resolve) => {
     abort = () => resolve(stoppedResult());

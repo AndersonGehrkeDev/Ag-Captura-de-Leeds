@@ -1,6 +1,6 @@
 // GERADO por scripts/db/generate-types.mjs a partir do catálogo PostgreSQL após aplicar as migrações.
 // Não editar manualmente. Os tipos não substituem RLS, grants ou validação de entradas.
-// SHA256 das migrações: 6378c00f445409c020ee004f694c252d505756ae902c243cf720ca05ae4484ff
+// SHA256 das migrações: 8eb5266c19d6368340cb93dcccf791efbfc999c25b299417de21a91717059c5a
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {

@@ -42,7 +42,7 @@ export function normalizeOverpass(input: unknown, city: string, observedAt: stri
     try { const url = new URL(tags.website ?? tags["contact:website"] ?? ""); if (["http:", "https:"].includes(url.protocol) && !url.username && !url.password && url.href.length <= 2048) website = url.href; } catch {}
     const category = /pizza/i.test(tags.cuisine ?? "") ? "Pizzaria" : labels[tags.amenity ?? tags.shop ?? tags.office ?? tags.craft ?? tags.healthcare ?? ""] ?? (tags.shop ? "Comércio" : tags.office ? "Escritório e serviços" : tags.craft ? "Serviços especializados" : "Estabelecimento");
     const address = [tags["addr:street"], tags["addr:housenumber"], tags["addr:suburb"]].filter(Boolean).join(", ");
-    records.push({ reference: `${element.type}/${element.id}`, name: tags.name.slice(0, 200), category, website, address: address ? address.slice(0, 500) : null,
+    records.push({ origin: "osm", reference: `${element.type}/${element.id}`, name: tags.name.slice(0, 200), category, website, address: address ? address.slice(0, 500) : null,
       city, latitude: point.lat!, longitude: point.lon!, observedAt });
   }
   return openCacheSchema.parse({ records: [...new Map(records.map((r) => [r.reference, r])).values()], limited: found.length > 60, observedAt });

@@ -1,42 +1,51 @@
 # Busca nacional gratuita
 
-Decisão e consulta de fontes oficiais: **31/10/2026 (BRT)**. Escopo autorizado: uso próprio, municípios de todo o Brasil, sem cartão, pagamento ou créditos de API. Nenhum plano foi contratado ou alterado.
+Decisões e fontes oficiais consultadas em **31/10/2026 (BRT)**. Escopo: uso próprio, municípios de todo o Brasil, sem pagamento, cartão ou créditos de API. Nenhuma assinatura foi contratada.
 
-## Escolha
+## Solução adotada
 
-| Parte | Serviço | Condições aplicadas |
+| Parte | Fonte oficial | Aplicação |
 |---|---|---|
-| Municípios | [IBGE Localidades](https://servicodados.ibge.gov.br/api/docs/localidades), [registro de referência e reuso](https://www.gov.br/conecta/catalogo/apis/registro-referencia-municipios) | Identificadores oficiais, nome e UF para seleção. Cópia normalizada de 5.571 municípios da resposta de 31/10. Atribuição IBGE; sem geocoding por tecla, IA ou exportação desses metadados. |
-| Empresas | [Overpass Private.coffee e termos do operador](https://overpass.private.coffee/) | Permite aplicativos, inclusive comerciais, sem registro ou chave. Exige uso responsável, limitação de simultaneidade, User-Agent identificável e preferência por POST. Serviço comunitário sem garantia de disponibilidade/atualização. |
-| Licença das empresas | [OpenStreetMap copyright](https://www.openstreetmap.org/copyright), [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) | Exibição com atribuição e licença; cache normalizado separado dos metadados comerciais. Uso interno pessoal. Exportação de conteúdo OSM e envio à IA permanecem bloqueados; redistribuição futura exige atender também compartilhamento da base derivada sob ODbL. |
-| Mapa | [OpenFreeMap](https://openfreemap.org/), [integração](https://openfreemap.org/quick_start/), [termos](https://openfreemap.org/tos/) | Mapa incorporado sem conta, chave ou créditos. Estilo dark, créditos OpenFreeMap/OpenMapTiles/OSM preservados. Sem extração de POIs dos tiles, download offline ou captura de base cartográfica. Disponibilidade sem SLA. |
-| Renderização | [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/) | SDK BSD-3-Clause fixado em 6.16.0; carregado só na visualização solicitada após a busca. Marcadores, agrupamento, teclado/toque e alternativa em lista. |
+| Seleção municipal | [IBGE Localidades v1](https://servicodados.ibge.gov.br/api/docs/localidades), [registro de referência e reuso](https://www.gov.br/conecta/catalogo/apis/registro-referencia-municipios) | Lista normalizada de 5.571 municípios; nomes/códigos/UF e atribuição IBGE. Filtragem local, sem chamada por tecla. |
+| Resolução geográfica | [IBGE Malhas v3](https://servicodados.ibge.gov.br/api/docs/malhas?versao=3) | GeoJSON simplificado por código municipal; caixa envolvente calculada no servidor. Não é teste exato de inclusão na divisa. |
+| Empresas | [Overture Places](https://docs.overturemaps.org/guides/places/), [arquivos públicos](https://docs.overturemaps.org/getting-data/cloud-sources/), [licenças por origem](https://docs.overturemaps.org/attribution/#places) | Consulta anônima ao GeoParquet público, release **2026-10-21.0**, com DuckDB oficial no servidor. Sem conta AWS/Azure, chave ou serviço de consultas pago. |
+| Licença das empresas | [CDLA Permissive 2.0](https://cdla.dev/permissive-2-0/) | Somente registros cujas fontes são Meta/Microsoft/Overture e todas declaram CDLA-Permissive-2.0. Texto integral em `/licencas/CDLA-Permissive-2.0.txt`, junto à atribuição. Outras fontes/licenças Overture são excluídas nesta versão. |
+| Mapa | [OpenFreeMap](https://openfreemap.org/), [integração](https://openfreemap.org/quick_start/), [termos](https://openfreemap.org/tos/) | Mapa dark sem conta, chave ou créditos. Créditos OpenFreeMap/OpenMapTiles/OSM preservados. Sem extração de POIs dos tiles ou downloads offline. |
+| Renderização e consulta | [MapLibre](https://maplibre.org/maplibre-gl-js/docs/), [DuckDB Node Neo](https://duckdb.org/docs/1.5/clients/node_neo/overview) | `maplibre-gl` 6.16.0 e `@duckdb/node-api` 1.5.6-r.2 fixados. Carregamento sob demanda; DuckDB com 256 MiB, duas threads, httpfs oficial assinado, SQL parametrizado, interrupção e fechamento explícito. |
 
-Alternativas examinadas: Google permanece incompatível com a decisão atual de uso do produto; Geoapify tem créditos e não atende ao pedido; [Overture Places](https://docs.overturemaps.org/guides/places/) oferece dados abertos baixáveis, mas não uma API nacional de busca pronta e gratuita para esta hospedagem. Um recorte fixo não atendia à exigência de qualquer cidade. [Overpass principal](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html) desaconselha depender de seus servidores como backend de aplicativos: não foi conectado. A permissão específica da Private.coffee foi verificada separadamente.
+Overture é uma base aberta consultada diretamente, não uma alegação de API nacional gratuita pronta. Não baixamos o Brasil inteiro para Supabase. A consulta lê colunas necessárias e filtra cidade declarada, caixa envolvente, confiança da fonte ≥ 0,8 e segmento/nome; isso não garante atualidade ou ausência de duplicatas entre IDs distintos. A confiança não é nota comercial nem avaliação de clientes.
 
-## Funcionamento e limites reais
+## Condições e limites
 
-1. A lista oficial é filtrada **localmente** pelo nome/UF. Escolha a cidade e clique em Buscar empresas; digitar ou mover o mapa não consulta empresas.
-2. O servidor resolve o UUID da localização para um código IBGE da lista confiável; não aceita Overpass QL, bounding boxes, endpoints ou licenças do cliente.
-3. A consulta utiliza a área administrativa **cadastrada no OSM** com `ref:IBGE` e `admin_level=8`. Isso não comprova divisa oficial. Se a área não existir, a aplicação informa indisponibilidade geográfica em vez de afirmar ausência de empresas.
-4. Busca livre inclui estabelecimentos com nome e tags de comércio, serviços/escritórios e amenidades comerciais. Nichos mapeiam vocabulário fechado; palavras conhecidas mapeiam nichos, outras filtram o nome no OSM. Não é busca semântica. Termos com e-mail, telefone ou URL são recusados.
-5. Um POST, timeout Overpass 25 s/64 MiB, resposta máxima 2 MiB. Até 61 itens são solicitados para identificar truncamento; até 60 são entregues. As páginas de 20 são **locais**, não paginação nativa do Overpass. Total populacional permanece desconhecido. Não há varredura por grades, lote nacional ou consultas automáticas por deslocamento do mapa.
-6. Cache de consulta por 24 h, isolado por workspace. Gate SQL atômico de **100 novas consultas/dia UTC por instalação**, uma simultânea e intervalo de 10 s. Não são créditos compráveis: é proteção operacional do aplicativo. Falhas também consomem a tentativa; não há retries automáticos nem rotação de instâncias. Interrupções não geram resultados sintéticos.
-7. Até 1.000 registros normalizados por workspace; registros vinculados ao CRM têm prioridade sobre descarte dos mais antigos. Conteúdo consultável por até 365 dias, com data visível. Limpeza de vencidos ocorre nas operações autenticadas; não foi configurado agendamento independente de expurgo para workspaces inativos. Limites/prazos são decisões operacionais, não uma alegação de TTL obrigatório da ODbL.
-8. O cache armazena só referência OSM, nome, categoria traduzida de tags, site HTTP(S), endereço, associação municipal derivada da área e coordenadas/data. Sem respostas integrais, contatos, fotos, notas ou avaliações inventadas. Site ausente não comprova empresa sem site.
-9. O CRM mantém sua arquitetura: só referência aprovada e metadados próprios; nomes/sites são resolvidos na fonte. A migração 011 não modifica o CRUD/RLS existentes. Sem `service_role` ou chave Supabase privilegiada. IA, auditorias, exportação de campos OSM e link para outro provedor continuam sujeitos a permissões próprias e desativados nesta fonte.
-10. Abrangência por raio está indisponível nesta fonte. Nenhum centro municipal foi inventado. Mapas mostram os mesmos resultados carregados/filtrados e detalhes sob demanda, com fallback em lista se WebGL/tiles falharem.
+- Selecione cidade e clique em **Buscar empresas**. Nada consulta empresas ao digitar, abrir a tela ou mover o mapa. Busca livre não exige nicho; nichos são fechados; palavras conhecidas mapeiam segmentos e outras procuram o nome, sem busca semântica.
+- A localidade vem da lista confiável do servidor. O filtro combina cidade declarada na Overture com caixa envolvente da malha IBGE, sem prometer divisa exata, censo ou todas as empresas. Raios permanecem indisponíveis; nenhum centro municipal foi inventado.
+- Até 61 registros são lidos para identificar truncamento e até **60** são entregues. Páginas de 20 são locais, não paginação de API. Total populacional desconhecido. Sem varredura por grades, lote nacional ou repetição automática.
+- Cache de consultas por **24 h**, isolado por workspace. Gate SQL atômico global: **100 novas consultas/dia UTC**, uma simultânea, intervalo de 10 s; reserva expira em 55 s. São limites operacionais gratuitos, sem venda de créditos. Falhas contam como tentativa; cache não provoca nova leitura externa.
+- Até 1.000 registros normalizados por workspace; dados vinculados ao CRM têm prioridade no descarte. Consulta a registros por até 365 dias, com data/release. Expirados são limpos nas operações autenticadas; não há agendamento independente de expurgo para workspaces inativos. Os prazos são operacionais, não um TTL atribuído à licença.
+- O runtime aguarda consulta, interrupção/fechamento e liberação de reserva; não depende de trabalho após a resposta. Deadline de aplicação 45 s, handler Vercel 60 s, timeout HTTP DuckDB 5 s e sem retries. Busca fria pode levar dezenas de segundos. Falhas não geram dados sintéticos.
+- Allowlist: referência, origem, nome, categoria traduzida, site HTTP(S), endereço, associação municipal, coordenadas e data. Sem respostas brutas, contatos, fotos ou avaliações. Site não informado não comprova empresa sem site. Campos ausentes não viram diagnóstico.
+- Dados continuam `licensed`, com proveniência Overture/CDLA e ancestralidade IBGE para associação municipal. O mapa usa OSM independentemente: não misturamos bases nem promovemos conteúdo Google a dado livre. Google continua bloqueado.
+- CRM conserva só referência aprovada e metadados comerciais; nomes/sites são resolvidos na fonte. Migrações 011/012 reutilizam sessão, associação e prova CRM, sem credencial privilegiada em CRUD. Exportação de conteúdo dessas fontes e IA permanecem bloqueadas; auditorias exigem permissões/configuração próprias.
+- Mapa/lista/detalhes compartilham seleção e filtros, com drawer mobile e controles de toque/teclado. Falha de WebGL/tiles tem alternativa em lista. Serviços gratuitos e planos Free/Hobby têm limites e não garantem disponibilidade.
 
-## Configuração
+## Configuração e atualização
 
-Aplicar somente a migração pendente `20261031001100_open_business_search.sql`. No workspace AG já provisionado ela registra a política SQL de referência OSM a partir do owner existente; não cria usuário nem transfere propriedade.
+Aplicar somente migrações pendentes, sem reset/seeds. 011 cria cache/gate privado; 012 acrescenta namespace/política Overture, preservando histórico. Na AG dedicada, política é provisionada administrativamente a partir do owner existente; não há auto-claim.
 
-Variáveis somente do servidor: `OPEN_DATA_CATALOG_ENABLED=true`, `OPEN_DATA_WORKSPACE_ID`, `OPEN_DATA_REVIEWER_ID`; habilitar `FEATURE_CATALOG_SEARCH` e `FEATURE_CATALOG_DETAILS`. Reutilizar `CRM_EXECUTOR_SECRET` e seu hash já configurados, mais `FEATURE_OWN_DATA_PERSISTENCE` para adicionar lead. Não definir chaves Google. `FEATURE_DATA_EXPORT`/`FEATURE_AI_MESSAGES` não concedem direitos sobre OSM. Se `OWNED_CATALOG_FILE` estiver informado, ele tem prioridade.
+Servidor: `OPEN_DATA_CATALOG_ENABLED=true`, **`OPEN_DATA_PROVIDER=overture`**, `OPEN_DATA_WORKSPACE_ID`, `OPEN_DATA_REVIEWER_ID`, `FEATURE_CATALOG_SEARCH=true` e `FEATURE_CATALOG_DETAILS=true`. Reutilizar Supabase/`CRM_EXECUTOR_SECRET`/hash e `FEATURE_OWN_DATA_PERSISTENCE` para adicionar lead. Sem chaves Google. Flags de exportação/IA não concedem licença. `OWNED_CATALOG_FILE` tem prioridade, sem misturar fontes.
 
-O arquivo `data/open/municipios.json` deve estar no tracing serverless, como configurado em `next.config.ts`. Atualização administrativa (Node 22, sem credenciais): `node scripts/open-data/update-municipalities.mjs`; revisar o diff e publicar normalmente. Não executa buscas de empresas.
+`data/open/municipios.json` é público e incluído no tracing; empresas/cache/CRM ficam fora de Git/assets públicos. Atualização administrativa sem credenciais: `node scripts/open-data/update-municipalities.mjs`; revisar diff e publicar. Release Overture está fixada em `model.ts`: atualizar após revisar schema, disponibilidade e licenças; sem atualização silenciosa para fonte desconhecida.
 
-Novos workspaces exigem aprovação/configuração administrativa própria; um membro não pode declarar origem, aprovar licença ou trocar o workspace no cache. Não reaplicar bootstrap nem usar a base do outro sistema.
+O build externaliza DuckDB e inclui o binário da plataforma na função `/api/prospeccao`. httpfs assinado usa diretório temporário, sem escrita na aplicação. Sem banco DuckDB persistente, fila em memória ou conexão global com dados privados. Memória/tempo da Vercel Hobby podem limitar consultas; não atualizar plano automaticamente.
 
-## Verificação desta alteração
+## Alternativas examinadas
 
-Testes direcionados: construção dos três modos/entrada hostil, allowlist/ausências/proveniência, 429 sem retry, seleção nacional/cache e SQL real no PGlite com dois escopos, reserva exclusiva e teto persistente. Acesso real da API, mapa e CRM na Vercel ficam registrados no acompanhamento após a conferência, distinguindo-os dos testes com fixtures. Não foi executada a suíte geral.
+[Private.coffee](https://overpass.private.coffee/) permite Overpass em aplicativos sem chave e permanece como opção explícita `OPEN_DATA_PROVIDER=osm`. Consultas expiraram localmente e na Vercel em 31/10: não é a fonte ativa. Sem fallback/rotação automática; origem OSM/ODbL, IDs e créditos são distintos da Overture. [Overpass principal](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html) desaconselha dependência de seu servidor público por aplicativos e não foi conectado.
+
+Google continua bloqueado; Geoapify usa créditos. [Ohsome v2](https://heigit.org/ohsome-2-0-has-arrived-2/) exige conta/chave e o v1 será desativado em 30/11/2026; não foi conectado. Não usamos scraping ou permissões presumidas de sites de terceiros.
+
+## Verificação e rollback
+
+Testes direcionados de transporte, consulta/proveniência/cache/SQL; CI essencial acrescenta seis casos sem rede externa. A consulta gratuita real Overture passou por opt-in local após corrigir a instalação oficial httpfs. Ela só roda com `AG_LIVE_OVERTURE_TEST=true`, ausente na CI. Conferência de publicação, mapa e CRM consta no acompanhamento após execução na hospedagem.
+
+Rollback: desabilitar `OPEN_DATA_CATALOG_ENABLED` e redeployar ou promover o deployment anterior da Vercel; reverter commit no Git se necessário. Manter migrações aditivas e dados, sem reset/drop. Não há migração automática na CI.

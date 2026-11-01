@@ -145,3 +145,6 @@ Configuração pela API oficial [projetos](https://supabase.com/docs/reference/a
 - OpenFreeMap: estilo vetorial `https://tiles.openfreemap.org/styles/dark`; serviço sem versão de SDK própria.
 - OpenStreetMap: Overpass QL via POST `https://overpass.private.coffee/api/interpreter`; API externa, não versão de pacote npm. [Termos do operador](https://overpass.private.coffee/).
 - IBGE Localidades API **v1**, lista de municípios normalizada em 31/10/2026; [documentação](https://servicodados.ibge.gov.br/api/docs/localidades).
+- Fonte ativa após falha real da Private.coffee: **Overture Places 2026-10-21.0**, acesso anônimo ao GeoParquet público, sem API de créditos. [Licenças por fonte](https://docs.overturemaps.org/attribution/#places). Overpass fica alternativa explícita inativa, sem fallback automático.
+- `@duckdb/node-api` e bindings **1.5.6-r.2**, runtime DuckDB **1.5.6**, MIT, fixados no lockfile; [cliente oficial Neo 1.5](https://duckdb.org/docs/1.5/clients/node_neo/overview). httpfs oficial assinado da mesma versão; binário da plataforma incluído no tracing da API. Node 22 preservado.
+- IBGE Malhas **v3**, GeoJSON simplificado usado para caixa envolvente; [documentação oficial](https://servicodados.ibge.gov.br/api/docs/malhas?versao=3). Sem geocoding pago ou pretensão de teste exato de divisa.

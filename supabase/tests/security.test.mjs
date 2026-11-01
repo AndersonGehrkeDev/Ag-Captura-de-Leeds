@@ -47,7 +47,7 @@ async function scalar(sql,params=[]) { return Object.values((await db.query(sql,
 
 try {
   await check("migrações executadas e AG inicial sem proprietário/associação automática", async () => {
-    assert.equal(migrations.length,11);
+    assert.equal(migrations.length,12);
     assert.equal(await scalar("select state from public.workspaces where id=$1",[A]),"pending_owner");
     assert.equal(await scalar("select owner_id from public.workspaces where id=$1",[A]),null);
     assert.equal(await as(null,()=>scalar("select count(*)::integer from public.workspaces")),0);
