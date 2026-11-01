@@ -36,4 +36,6 @@ Thumbs.db
 *.bak
 # Catálogos/evidências reais fornecidos por operador (nunca assets públicos)
 .local-data/
+# Worker/aviso legal gerados do SDK fixado antes de dev/build, sem segredos.
+public/vendor/maplibre/
 *.catalog.local.json

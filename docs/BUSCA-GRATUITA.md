@@ -40,6 +40,8 @@ Release Overture está fixada em `model.ts`: atualizar após revisar schema, dis
 
 O build externaliza DuckDB e inclui o binário da plataforma na função `/api/prospeccao`. httpfs assinado usa diretório temporário, sem escrita na aplicação. Sem banco DuckDB persistente, fila em memória ou conexão global com dados privados. Memória/tempo da Vercel Hobby podem limitar consultas; não atualizar plano automaticamente.
 
+MapLibre 6 exige seu worker junto ao módulo original; como o Next altera essa localização, `predev`/`prebuild` geram o worker da versão instalada em `/vendor/maplibre/worker-6.16.0.mjs` e copiam o aviso BSD. O componente configura explicitamente essa URL no próprio domínio. Assets gerados são ignorados no Git, reproduzidos do lockfile e carregados só ao abrir o mapa. Não usar URL quebrada relativa ao chunk nem depender de CDN adicional.
+
 ## Alternativas examinadas
 
 [Private.coffee](https://overpass.private.coffee/) permite Overpass em aplicativos sem chave e permanece como opção explícita `OPEN_DATA_PROVIDER=osm`. Consultas expiraram localmente e na Vercel em 31/10: não é a fonte ativa. Sem fallback/rotação automática; origem OSM/ODbL, IDs e créditos são distintos da Overture. [Overpass principal](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html) desaconselha dependência de seu servidor público por aplicativos e não foi conectado.

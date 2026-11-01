@@ -8,7 +8,9 @@
     "npm": ">=10.9.2 <11"
   },
   "scripts": {
+    "predev": "node scripts/prepare-map-worker.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/prepare-map-worker.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",

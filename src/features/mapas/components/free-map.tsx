@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Map as LibreMap, Marker, LngLatBounds, type GeoJSONSource } from "maplibre-gl";
+import { Map as LibreMap, Marker, LngLatBounds, getVersion, setWorkerUrl, type GeoJSONSource } from "maplibre-gl";
 import type { FeatureCollection, Point } from "geojson";
 import { LocateFixed, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export default function FreeMap({ companies, selectedId, onSelect, attributions 
     name: company.name.state === "known" ? company.name.data.value : "Empresa sem nome informado", longitude: company.coordinates.longitude, latitude: company.coordinates.latitude }] : []));
   useEffect(() => {
     selected.current = selectedId; select.current = onSelect;
-    for (const marker of markers.current) marker.getElement().setAttribute("aria-pressed", String(marker.getElement().dataset.reference === selectedId));
+    for (const marker of markers.current) markSelection(marker.getElement(), selectedId);
   }, [onSelect, selectedId]);
   useEffect(() => {
     pointsRef.current = JSON.parse(signature) as MapPoint[];
@@ -31,6 +31,7 @@ export default function FreeMap({ companies, selectedId, onSelect, attributions 
   }, [signature]);
   useEffect(() => {
     if (!container.current) return;
+    setWorkerUrl(`/vendor/maplibre/worker-${getVersion()}.mjs`);
     let map: LibreMap;
     try { map = new LibreMap({ container: container.current, style: "https://tiles.openfreemap.org/styles/dark", center: [-51, -14], zoom: 3, attributionControl: { compact: false }, cooperativeGestures: true,
       locale: { "Map.Title": "Mapa de empresas", "CooperativeGesturesHandler.WindowsHelpText": "Use Ctrl + rolagem para ampliar o mapa", "CooperativeGesturesHandler.MacHelpText": "Use ⌘ + rolagem para ampliar o mapa", "CooperativeGesturesHandler.MobileHelpText": "Use dois dedos para mover o mapa" } }); }
@@ -49,6 +50,14 @@ export default function FreeMap({ companies, selectedId, onSelect, attributions 
         button.dataset.reference = clustered ? "" : String(props.reference); button.setAttribute("aria-pressed", String(!clustered && props.reference === selected.current));
         button.setAttribute("aria-label", clustered ? `Abrir grupo com ${props.point_count} empresas` : `Selecionar ${String(props.name)} no mapa`);
         button.textContent = clustered ? String(props.point_count) : "●";
+        if (clustered) {
+          const source = map.getSource("ag-companies") as GeoJSONSource;
+          void source.getClusterLeaves(clusterId, 60, 0).then((leaves) => {
+            if (mapRef.current !== map) return;
+            button.dataset.members = JSON.stringify(leaves.flatMap((leaf) => typeof leaf.properties?.reference === "string" ? [leaf.properties.reference] : []));
+            markSelection(button, selected.current);
+          }).catch(() => {});
+        }
         button.addEventListener("click", () => {
           if (!clustered) { select.current(String(props.reference)); return; }
           const source = map.getSource("ag-companies") as GeoJSONSource;
@@ -88,6 +97,10 @@ export default function FreeMap({ companies, selectedId, onSelect, attributions 
   </section>;
 }
 function collection(points: MapPoint[]): FeatureCollection<Point, Properties> { return { type: "FeatureCollection", features: points.map(({ reference, name, longitude, latitude }) => ({ type: "Feature", properties: { reference, name }, geometry: { type: "Point", coordinates: [longitude, latitude] } })) }; }
+function markSelection(element: HTMLElement, selectedId: string | null) {
+  const members = element.dataset.members ? JSON.parse(element.dataset.members) as string[] : [];
+  element.setAttribute("aria-pressed", String(selectedId !== null && (element.dataset.reference === selectedId || members.includes(selectedId))));
+}
 function fit(map: LibreMap, points: MapPoint[]) {
   if (!points.length) return;
   if (points.length === 1) { map.jumpTo({ center: [points[0]!.longitude, points[0]!.latitude], zoom: 14 }); return; }
