@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { isAbsolute, join, relative } from "node:path";
 import { catalogManifestSchema } from "@/domain/integrations/catalog-manifest";
 import type { WorkspaceIntegrationSnapshot } from "@/server/integrations/contracts";
+import { readOpenManifest } from "@/server/providers/open-data/registry";
 
 const maxBytes = 8 * 1024 * 1024;
 export class CatalogConfigurationError extends Error { constructor() { super("catalog_not_configured"); } }
@@ -18,7 +19,11 @@ export async function readOwnedRegistry(workspaceId: string, signal: AbortSignal
   }
 }
 async function readRegistry(workspaceId: string, signal: AbortSignal, path: string | undefined) {
-  if (!path || path.startsWith("\\\\") || path.startsWith("//")) return null;
+  if (!path) {
+    const manifest = await readOpenManifest(workspaceId, signal);
+    return manifest ? registryFromManifest(workspaceId, manifest, createHash("sha256").update(JSON.stringify(manifest)).digest("hex")) : null;
+  }
+  if (path.startsWith("\\\\") || path.startsWith("//")) return null;
   signal.throwIfAborted();
   const resolved = await realpath(path);
   const inside = (root: string) => { const part = relative(root, resolved); return !part.startsWith("..") && !isAbsolute(part); };
@@ -39,6 +44,10 @@ async function readRegistry(workspaceId: string, signal: AbortSignal, path: stri
     if (length > maxBytes) throw new Error("invalid_catalog");
     const contents = buffer.subarray(0, length);
     const manifest = catalogManifestSchema.parse(JSON.parse(contents.toString("utf8")));
+    return registryFromManifest(workspaceId, manifest, createHash("sha256").update(contents).digest("hex"));
+  } finally { await handle.close(); }
+}
+function registryFromManifest(workspaceId: string, manifest: ReturnType<typeof catalogManifestSchema.parse>, revision: string) {
     const workspace = manifest.workspaces.find((entry) => entry.workspaceId === workspaceId);
     if (!workspace) return null;
     const snapshot: WorkspaceIntegrationSnapshot = {
@@ -49,6 +58,5 @@ async function readRegistry(workspaceId: string, signal: AbortSignal, path: stri
       catalogs: new Map(workspace.sources.map((source) => [source.id, source.companies])),
       locations: new Map(workspace.sources.map((source) => [source.id, source.locations])),
     };
-    return { snapshot, sources: workspace.sources, revision: createHash("sha256").update(contents).digest("hex") };
-  } finally { await handle.close(); }
+    return { snapshot, sources: workspace.sources, revision };
 }

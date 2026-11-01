@@ -1,0 +1,10 @@
+import { mkdir, writeFile } from "node:fs/promises";
+const source = "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome";
+const response = await fetch(source, { signal: AbortSignal.timeout(30000), redirect: "error" });
+if (!response.ok) throw new Error("IBGE indisponível; arquivo anterior preservado.");
+const body = await response.text(); if (Buffer.byteLength(body) > 8 * 1024 * 1024) throw new Error("Resposta IBGE acima do limite.");
+const municipalities = JSON.parse(body).map((x) => ({ code: String(x.id), name: x.nome, uf: x.microrregiao?.mesorregiao?.UF?.sigla || x["regiao-imediata"]?.["regiao-intermediaria"]?.UF?.sigla }));
+if (municipalities.length < 5500 || municipalities.length > 6000 || municipalities.some((x) => !/^\d{7}$/.test(x.code) || typeof x.name !== "string" || !/^[A-Z]{2}$/.test(x.uf))) throw new Error("Lista IBGE inválida; arquivo anterior preservado.");
+await mkdir("data/open", { recursive: true });
+await writeFile("data/open/municipios.json", JSON.stringify({ source, downloadedAt: new Date().toISOString(), municipalities }) + "\n");
+console.log(`${municipalities.length} municípios oficiais atualizados; nenhuma busca de empresas executada.`);

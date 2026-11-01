@@ -12,16 +12,17 @@ async function pause(milliseconds: number, signal: AbortSignal) {
   });
 }
 // Uma ação explícita; no máximo 3 tentativas transitórias, deadline total de 20 s.
-export async function callSearchApi<T>(command: SearchApiRequest, schema: z.ZodType<T>, cancellation: AbortSignal): Promise<IntegrationResult<T>> {
-  const signal = AbortSignal.any([cancellation, AbortSignal.timeout(20_000)]);
+export async function callSearchApi<T>(command: SearchApiRequest, schema: z.ZodType<T>, cancellation: AbortSignal, transport?: { timeoutMs: 50_000; maxAttempts: 1 }): Promise<IntegrationResult<T>> {
+  const signal = AbortSignal.any([cancellation, AbortSignal.timeout(transport?.timeoutMs ?? 20_000)]);
+  const maxAttempts = transport?.maxAttempts ?? 3;
   try {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       signal.throwIfAborted();
       let response: Response;
       try { response = await fetch("/api/prospeccao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(command), cache: "no-store", signal }); }
       catch (error) {
         if (signal.aborted) throw error;
-        if (attempt < 2 && error instanceof TypeError) { await pause(500 * 2 ** attempt, signal); continue; }
+        if (attempt + 1 < maxAttempts && error instanceof TypeError) { await pause(500 * 2 ** attempt, signal); continue; }
         return integrationFailure("provider_unavailable");
       }
       const body: unknown = await response.json();
@@ -33,7 +34,7 @@ export async function callSearchApi<T>(command: SearchApiRequest, schema: z.ZodT
       const retryAfter = response.headers.get("retry-after");
       const seconds = retryAfter === null ? null : /^\d+$/.test(retryAfter) ? Number(retryAfter) : Math.max(0, (Date.parse(retryAfter) - Date.now()) / 1000);
       // Não ignorar uma espera longa do servidor. O usuário poderá tentar depois.
-      if (!transient || attempt === 2 || (seconds !== null && (!Number.isFinite(seconds) || seconds > 2))) return failure.data;
+      if (!transient || attempt + 1 === maxAttempts || (seconds !== null && (!Number.isFinite(seconds) || seconds > 2))) return failure.data;
       await pause(Math.max(500 * 2 ** attempt, (seconds ?? 0) * 1000), signal);
     }
   } catch { return integrationFailure(signal.aborted ? signal.reason?.name === "TimeoutError" ? "timeout" : "cancelled" : "provider_unavailable"); }

@@ -4,12 +4,17 @@ import { useId, useState } from "react";
 import { LocateFixed, MapPin, Minus, Plus } from "lucide-react";
 import type { CompanyRecord } from "@/domain/integrations/contracts";
 import { Button } from "@/components/ui/button";
+import dynamic from "next/dynamic";
+
+const FreeMap = dynamic(() => import("./free-map"), { ssr: false, loading: () => <p role="status" className="source-map-scope">Carregando mapa gratuito…</p> });
+type Props = { companies: readonly CompanyRecord[]; selectedId: string | null; onSelect: (reference: string) => void; attributions: readonly string[]; cartography?: boolean };
+export default function SourceMap(props: Props) { return props.cartography ? <FreeMap {...props} /> : <CoordinateMap {...props} />; }
 
 type Point = { reference: string; name: string; x: number; y: number };
 const nameOf = (company: CompanyRecord) => company.name.state === "known" ? company.name.data.value : "Empresa sem nome informado";
 
 // Só projeta coordenadas aprovadas recebidas do servidor. Sem tiles, ruas ou buscas externas.
-export default function SourceMap({ companies, selectedId, onSelect, attributions }: {
+function CoordinateMap({ companies, selectedId, onSelect, attributions }: {
   companies: readonly CompanyRecord[]; selectedId: string | null; onSelect: (reference: string) => void; attributions: readonly string[];
 }) {
   const [zoom, setZoom] = useState(1); const [expanded, setExpanded] = useState<string | null>(null);

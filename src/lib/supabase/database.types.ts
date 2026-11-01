@@ -1,6 +1,6 @@
 // GERADO por scripts/db/generate-types.mjs a partir do catálogo PostgreSQL após aplicar as migrações.
 // Não editar manualmente. Os tipos não substituem RLS, grants ou validação de entradas.
-// SHA256 das migrações: 4d5e07701e0c5a192c84d208882d0107c556f64614755069eda9abacc373258f
+// SHA256 das migrações: 6378c00f445409c020ee004f694c252d505756ae902c243cf720ca05ae4484ff
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
@@ -1146,6 +1146,12 @@ export type Database = {
         p_error?: string;
         p_executor?: string;
       }; Returns: string; };
+      ag_open_data: { Args: {
+        p_workspace: string;
+        p_action: string;
+        p_input?: Json;
+        p_executor?: string;
+      }; Returns: Json; };
       ag_remove_member: { Args: {
         p_workspace: string;
         p_user: string;

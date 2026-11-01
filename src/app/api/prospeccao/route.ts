@@ -8,6 +8,7 @@ import { verifyIntegrationWorkspace } from "@/server/integrations/access";
 import { createSearchLimiter } from "@/server/integrations/search-limits";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 const acquire = createSearchLimiter();
 const execute = createSearchService();
 const statuses = { invalid_input: 400, access_denied: 403, feature_disabled: 409, permission_denied: 403, not_configured: 503, not_implemented: 501, provider_unavailable: 503, rate_limited: 429, not_found: 404, cancelled: 409, timeout: 504, limit_reached: 409 } as const;
@@ -41,7 +42,7 @@ async function handle(request: Request, signal: AbortSignal) {
   return respond(await execute(parsed.data, signal).finally(release));
 }
 export async function POST(request: Request) {
-  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(8000)]);
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(process.env.OPEN_DATA_CATALOG_ENABLED === "true" ? 45000 : 8000)]);
   const stoppedResult = () => respond(integrationFailure(signal.reason?.name === "TimeoutError" ? "timeout" : "cancelled"));
   const operation = handle(request, signal).catch(() => signal.aborted ? stoppedResult() : respond(integrationFailure("provider_unavailable")));
   let abort: () => void = () => {};

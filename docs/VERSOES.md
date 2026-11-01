@@ -139,3 +139,9 @@ Verificacao direcionada: typecheck e lint dos modulos tocados aprovados; um caso
 Supabase dedicado `ag-prospeccao`, Free, sa-east-1: **PostgreSQL 17.11**, confirmado por `current_setting('server_version')`, com as dez migrações e 22 tabelas públicas RLS. CLI Supabase **2.122.0**, Vercel CLI **65.9.0** temporário via npm e runtime Vercel **22.x**. SDKs/pacotes/lockfile da aplicação não foram alterados. A versão PGlite 18.6 dos testes anteriores continua sendo somente o harness; não é a versão remota.
 
 Configuração pela API oficial [projetos](https://supabase.com/docs/reference/api/v1-create-a-project), [Auth](https://supabase.com/docs/reference/api/v1-update-auth-service-config), [PostgREST](https://supabase.com/docs/reference/api/v1-update-postgrest-service-config) e [chaves](https://supabase.com/docs/reference/api/v1-get-project-api-keys), consultadas para essa operação. Organização Free confirmada antes de criar a segunda base; sem upgrade/compute extra/SMTP contratado. E-mail padrão do Free recusou personalização de templates, mantidos nativos. Login real e salvar/reler registro CRM passaram na Vercel; resultados e limites em [PUBLICACAO.md](PUBLICACAO.md).
+# Integração gratuita adicional — 31/10/2026
+
+- `maplibre-gl` **6.16.0**, dependência direta fixada e lockfile atualizado; [documentação oficial](https://maplibre.org/maplibre-gl-js/docs/), [instalação OpenFreeMap](https://openfreemap.org/quick_start/). React/Next mantidos. Nenhum SDK pago, pacote Google ou framework de agentes foi adicionado.
+- OpenFreeMap: estilo vetorial `https://tiles.openfreemap.org/styles/dark`; serviço sem versão de SDK própria.
+- OpenStreetMap: Overpass QL via POST `https://overpass.private.coffee/api/interpreter`; API externa, não versão de pacote npm. [Termos do operador](https://overpass.private.coffee/).
+- IBGE Localidades API **v1**, lista de municípios normalizada em 31/10/2026; [documentação](https://servicodados.ibge.gov.br/api/docs/localidades).

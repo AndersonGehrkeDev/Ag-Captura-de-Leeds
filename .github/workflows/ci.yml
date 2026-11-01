@@ -50,6 +50,7 @@ jobs:
       FEATURE_AI_MESSAGES: 'false'
       FEATURE_OWN_DATA_PERSISTENCE: 'false'
       FEATURE_DATA_EXPORT: 'false'
+      OPEN_DATA_CATALOG_ENABLED: 'false'
     steps:
       - name: Checkout sem credencial persistida
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -73,6 +74,9 @@ jobs:
       - name: Isolamento SQL de workspaces (3 verificações)
         if: ${{ !inputs.retest_selection }}
         run: npm run db:test -- --grep '^SELECT leads:|^UPDATE/DELETE invisíveis'
+      - name: Fonte gratuita nacional e cache SQL (5 casos, sem rede externa)
+        if: ${{ !inputs.retest_selection }}
+        run: npm test -- src/server/providers/open-data/open-data.test.ts
       - name: Instalar somente Chromium do Playwright fixado
         run: npx --no-install playwright install --with-deps chromium
       - name: Login e seleção sincronizada (3 casos, build reutilizado)

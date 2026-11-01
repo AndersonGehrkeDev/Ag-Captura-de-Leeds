@@ -8,6 +8,8 @@ import { verifyIntegrationWorkspace } from "./access";
 import { getIntegrationFlags } from "./configuration";
 import { createIntegrationGateway } from "./gateway";
 import { CatalogConfigurationError, readOwnedRegistry } from "@/server/providers/owned/registry";
+import { openDataEnabled } from "@/server/providers/open-data/configuration";
+import { executeOpenSearch } from "@/server/providers/open-data/search";
 
 type Registry = NonNullable<Awaited<ReturnType<typeof readOwnedRegistry>>>;
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 32);
@@ -26,6 +28,9 @@ export function createSearchService(options: {
       if (!await authorize(command.workspaceId)) return integrationFailure("access_denied");
       if (signal.aborted) return integrationFailure(signal.reason?.name === "TimeoutError" ? "timeout" : "cancelled");
       if (!flags().catalogSearch) return integrationFailure("feature_disabled");
+      if (openDataEnabled(command.workspaceId) && !process.env.OWNED_CATALOG_FILE && (command.operation === "options" || command.operation === "search")) {
+        return executeOpenSearch(command, signal, { authorize, flags: flags() });
+      }
       const registry = await (options.read ?? readOwnedRegistry)(command.workspaceId, signal);
       if (!registry) return integrationFailure("not_configured");
       if (registry.snapshot.workspaceId !== command.workspaceId) return integrationFailure("access_denied");

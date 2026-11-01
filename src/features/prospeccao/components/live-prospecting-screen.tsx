@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,16 +17,17 @@ import { WebsiteAuditPanel } from "@/features/auditorias/components/website-audi
 import { CommercialMessagePanel, emptyMessageEditor, type MessageEditorState } from "@/features/ia/components/commercial-message-panel";
 import { callCrm } from "@/features/crm/client";
 
-const optionsSchema: z.ZodType<SearchOptions> = z.strictObject({ sources: z.array(z.strictObject({ id: z.uuid(), label: z.string().max(100), locations: z.array(z.strictObject({ id: z.uuid(), label: z.string().max(120), radiusAvailable: z.boolean(), attributions: z.array(z.string().max(500)) })).max(200) })).max(10) });
+const optionsSchema: z.ZodType<SearchOptions> = z.strictObject({ sources: z.array(z.strictObject({ id: z.uuid(), label: z.string().max(100), locations: z.array(z.strictObject({ id: z.uuid(), label: z.string().max(120), radiusAvailable: z.boolean(), attributions: z.array(z.string().max(500)) })).max(6000) })).max(10) });
 const pageSchema: z.ZodType<LoadedSearchPage> = searchPageSchema.extend({ state: z.enum(["empty", "complete", "partial", "limit_reached"]), excludedWithoutCoordinates: z.number().int().nonnegative(), scope: z.string().max(500), scopeAttributions: z.array(z.string().max(500)) });
 const text = (field: CompanyRecord["name"]) => field.state === "known" ? field.data.value : field.state === "not_checked" ? "Não consultado" : field.state === "lookup_failed" ? "Consulta indisponível" : "Não informado pela fonte";
 const SourceMap = dynamic(() => import("@/features/mapas/components/source-map"), { ssr: false, loading: () => <div className="map-placeholder" role="status">Carregando visualização de coordenadas…</div> });
 const matchesWebsite = (company: CompanyRecord, filter: string) => filter === "all" || (filter === "known" ? company.website.state === "known" : company.website.state !== "known");
 
-export function LiveProspectingScreen({ workspaceId, savedLeads, opportunities = false }: { workspaceId: string; savedLeads: number | null; opportunities?: boolean }) {
+export function LiveProspectingScreen({ workspaceId, savedLeads, opportunities = false, openMap = false }: { workspaceId: string; savedLeads: number | null; opportunities?: boolean; openMap?: boolean }) {
   const router = useRouter();
   const [options, setOptions] = useState<SearchOptions>({ sources: [] });
   const [sourceId, setSourceId] = useState(""); const [locationId, setLocationId] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
   const [mode, setMode] = useState<SearchRequest["mode"]>("free"); const [term, setTerm] = useState(""); const [category, setCategory] = useState("pizza");
   const [radius, setRadius] = useState<SearchRequest["radiusKm"]>("city");
   const [expanded, setExpanded] = useState(false); const [view, setView] = useState("map");
@@ -45,24 +46,27 @@ export function LiveProspectingScreen({ workspaceId, savedLeads, opportunities =
   const [lastRequest, setLastRequest] = useState<SearchRequest | null>(null); const focusReturn = useRef<HTMLElement | null>(null);
   const selectedSource = options.sources.find((source) => source.id === sourceId);
   const selectedLocation = selectedSource?.locations.find((location) => location.id === locationId);
+  const cityMatches = selectedSource?.locations.filter((location) => location.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").includes(cityFilter.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR"))) ?? [];
+  const visibleCities = openMap ? cityMatches.slice(0, 100) : cityMatches;
+  if (selectedLocation && !visibleCities.some((location) => location.id === selectedLocation.id)) visibleCities.unshift(selectedLocation);
   const filtered = items.filter((company) => matchesWebsite(company, websiteFilter));
 
-  function applyOptions(result: IntegrationResult<SearchOptions>, signal: AbortSignal) {
+  const applyOptions = useCallback((result: IntegrationResult<SearchOptions>, signal: AbortSignal) => {
     if (signal.aborted) return;
     setInitializing(false);
     if (!result.ok) { setMessage(result.error.message); setError(true); return; }
-    setOptions(result.data); setSourceId(result.data.sources[0]?.id ?? ""); setLocationId(result.data.sources[0]?.locations[0]?.id ?? "");
+    setOptions(result.data); setSourceId(result.data.sources[0]?.id ?? ""); setLocationId(openMap ? "" : result.data.sources[0]?.locations[0]?.id ?? "");
     setMessage(result.data.sources.length ? "Nenhuma consulta realizada. Escolha os filtros e busque explicitamente." : "Nenhuma fonte com permissão vigente para este workspace."); setError(false);
-  }
+  }, [openMap]);
   async function initialize(signal: AbortSignal) {
-    applyOptions(await callSearchApi({ operation: "options", workspaceId }, optionsSchema, signal), signal);
+    applyOptions(await callSearchApi({ operation: "options", workspaceId }, optionsSchema, signal, openMap ? { timeoutMs: 50_000, maxAttempts: 1 } : undefined), signal);
   }
   useEffect(() => {
     const controller = new AbortController(); optionsController.current = controller;
-    void callSearchApi({ operation: "options", workspaceId }, optionsSchema, controller.signal).then((result) => applyOptions(result, controller.signal));
+    void callSearchApi({ operation: "options", workspaceId }, optionsSchema, controller.signal, openMap ? { timeoutMs: 50_000, maxAttempts: 1 } : undefined).then((result) => applyOptions(result, controller.signal));
     return () => { controller.abort(); searchController.current?.abort(); detailController.current?.abort(); actionController.current?.abort(); };
     // O workspace é fixado pelo servidor nesta instância da tela.
-  }, [workspaceId]);
+  }, [workspaceId, openMap, applyOptions]);
 
   function clearResults() {
     closeSelection();
@@ -82,7 +86,7 @@ export function LiveProspectingScreen({ workspaceId, savedLeads, opportunities =
     if (window.matchMedia("(max-width: 767px)").matches) setView("list");
     searchController.current?.abort(); const controller = new AbortController(); searchController.current = controller;
     setLastRequest(request); setLoading(true); setError(false); setMessage("Consultando a fonte autorizada…");
-    const result = await callSearchApi({ operation: "search", workspaceId, request }, pageSchema, controller.signal);
+    const result = await callSearchApi({ operation: "search", workspaceId, request }, pageSchema, controller.signal, openMap ? { timeoutMs: 50_000, maxAttempts: 1 } : undefined);
     if (searchController.current !== controller || controller.signal.aborted) return;
     setLoading(false);
     if (!result.ok) {
@@ -105,7 +109,7 @@ export function LiveProspectingScreen({ workspaceId, savedLeads, opportunities =
     const controller = new AbortController(); detailController.current = controller;
     setDetailReference(reference); setDetail(null); setDetailMessage("Carregando detalhes…");
     if (!window.matchMedia("(min-width: 1280px)").matches) setDrawerOpen(true);
-    const result: IntegrationResult<CompanyRecord> = await callSearchApi({ operation: "details", workspaceId, request: { sourceId, reference } }, companySchema, controller.signal);
+    const result: IntegrationResult<CompanyRecord> = await callSearchApi({ operation: "details", workspaceId, request: { sourceId, reference } }, companySchema, controller.signal, openMap ? { timeoutMs: 50_000, maxAttempts: 1 } : undefined);
     if (detailController.current !== controller || controller.signal.aborted) return;
     if (result.ok) { setDetail(result.data); setDetailMessage(""); } else setDetailMessage(result.error.message);
   }
@@ -136,11 +140,11 @@ export function LiveProspectingScreen({ workspaceId, savedLeads, opportunities =
       <TabsContent value="audit">{detail.website.state === "known" ? <WebsiteAuditPanel key={`${sourceId}:${detail.website.data.provenanceId}`} workspaceId={workspaceId} sourceId={sourceId} websiteProvenanceId={detail.website.data.provenanceId} /> : <p>Site {text(detail.website).toLocaleLowerCase("pt-BR")}. Não é possível solicitar a auditoria.</p>}</TabsContent>
       <TabsContent value="message"><CommercialMessagePanel key={`${sourceId}:${detail.reference.value}`} workspaceId={workspaceId} sourceId={sourceId} reference={detail.reference.value} editor={messageEditors[`${sourceId}:${detail.reference.value}`] ?? emptyMessageEditor} onEditorChange={(update) => { const key = `${sourceId}:${detail.reference.value}`; setMessageEditors((previous) => ({ ...previous, [key]: typeof update === "function" ? update(previous[key] ?? emptyMessageEditor) : update })); }} /></TabsContent>
     </Tabs>
-    <Button variant="outline" disabled={!detail.coordinates || openingMap || addingLead} onClick={() => void openExternalMap()}><MapPin size={16} aria-hidden="true" />{openingMap ? "Verificando permissão…" : "Abrir no Google Maps"}</Button>
-    <p>O link abre o ponto informado pela fonte e exige permissão de transmissão. Não confirma um cadastro Google.</p>{actionMessage && <p role="status">{actionMessage}</p>}
+    <Button variant="outline" disabled={openMap || !detail.coordinates || openingMap || addingLead} onClick={() => void openExternalMap()}><MapPin size={16} aria-hidden="true" />{openingMap ? "Verificando permissão…" : "Abrir no Google Maps"}</Button>
+    <p>{openMap ? "Use o mapa gratuito da plataforma. Exportação e transmissão destes dados para outros provedores permanecem desativadas." : "O link abre o ponto informado pela fonte e exige permissão de transmissão. Não confirma um cadastro Google."}</p>{actionMessage && <p role="status">{actionMessage}</p>}
     <Button className="gold-button" disabled={addingLead || openingMap || !!savedLeadId} onClick={() => void addLead()}>{addingLead ? "Salvando lead…" : savedLeadId ? "Lead no CRM" : "Adicionar lead"}</Button><p>Requer permissão vigente de persistência da referência. Dados da empresa são consultados na fonte, sem copiar respostas completas.</p>{savedLeadId && <Link className="crm-open-link" href={`/leads?lead=${savedLeadId}`}>Abrir lead no CRM</Link>}
 
-    {detail.attributions.map((credit) => <small key={credit}>{credit}</small>)}
+    {detail.attributions.map((credit) => <small key={credit}>{credit}</small>)}{openMap && <a className="crm-open-link" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap: atribuição e licença ODbL</a>}
   </> : <><p role="status">{detailMessage}</p>{detailReference && detailMessage !== "Carregando detalhes…" && <Button variant="outline" onClick={() => void openDetails(detailReference)}>Tentar detalhes novamente</Button>}</>}</div>;
 
   const results = <section className="ag-panel results-panel live-results" aria-label="Resultados da pesquisa" aria-busy={loading}>
@@ -159,18 +163,18 @@ export function LiveProspectingScreen({ workspaceId, savedLeads, opportunities =
 
   return <div className={`prospecting-grid live-prospecting view-${view}`}><div className="prospecting-main">
     <section className="prospecting-heading"><div className="prospecting-title"><h1 id="live-title" tabIndex={-1}>{opportunities ? "Mapa de Oportunidades" : "Prospecção de Empresas"}</h1><p>{opportunities ? "Coordenadas da fonte autorizada. Não há classificação comercial automática ou cartografia Google." : "Consulte empresas em fontes próprias ou licenciadas."}</p></div><div className="metrics-grid">{[["Resultados carregados", items.length], ["Resultados filtrados", filtered.length], ["Leads salvos no workspace", savedLeads ?? "—"], ["Com site informado", items.filter((company) => company.website.state === "known").length]].map(([label, count]) => <div className="metric-card" key={label}><div><strong>{count}</strong><span>{label}</span></div></div>)}</div></section>
-    <div className="demo-strip"><span><Building2 size={16} aria-hidden="true" /><strong>{selectedSource?.label ?? "Fonte autorizada necessária"}</strong><span>Busca limitada aos registros disponíveis na fonte. Google não está habilitado para este uso.</span></span></div>
+    <div className="demo-strip"><span><Building2 size={16} aria-hidden="true" /><strong>{selectedSource?.label ?? "Fonte autorizada necessária"}</strong><span>{openMap ? "Brasil inteiro por cidade · OpenStreetMap + OpenFreeMap · sem chaves, cartão ou créditos. Cobertura colaborativa e parcial." : "Busca limitada aos registros disponíveis na fonte. Google não está habilitado para este uso."}</span></span></div>
     {!selectedSource && !initializing && <p className="live-status" role={error ? "alert" : "status"}>{message}</p>}
     <div className="discovery-grid"><section className={`ag-panel search-panel ${expanded ? "is-open" : ""}`} aria-labelledby="live-search-title"><div className="panel-heading"><h2 id="live-search-title">Pesquisar Empresas</h2><Button className="filter-toggle" variant="outline" size="icon" aria-label="Expandir filtros" aria-expanded={expanded} aria-controls="live-search-fields" onClick={() => setExpanded(!expanded)}><Filter aria-hidden="true" /></Button></div>
       <form id="live-search-fields" className="filter-body" onSubmit={submit}><Tabs value={mode} onValueChange={(value) => { clearResults(); setMode(value as SearchRequest["mode"]); }}><TabsList className="search-tabs" aria-label="Tipo de busca"><TabsTrigger value="free">Busca livre</TabsTrigger><TabsTrigger value="category">Por nicho</TabsTrigger><TabsTrigger value="keyword">Palavra-chave</TabsTrigger></TabsList><TabsContent value="free"><p className="search-hint">Estabelecimentos disponíveis na região selecionada, de diferentes segmentos.</p></TabsContent><TabsContent value="category"><label className="field-label">Nicho de atuação<select className="ag-input" value={category} onChange={(event) => { clearResults(); setCategory(event.target.value); }}>{businessCategories.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}</select></label></TabsContent><TabsContent value="keyword"><label className="field-label">Palavra-chave<input className="ag-input" value={term} maxLength={100} required={mode === "keyword"} onChange={(event) => { clearResults(); setTerm(event.target.value); }} placeholder="Ex.: clínica odontológica" /></label></TabsContent></Tabs>
       <label className="field-label">Fonte<select className="ag-input" value={sourceId} disabled={initializing || !options.sources.length} onChange={(event) => { clearResults(); setSourceId(event.target.value); setLocationId(options.sources.find((source) => source.id === event.target.value)?.locations[0]?.id ?? ""); setRadius("city"); }}>{!options.sources.length && <option value="">Nenhuma fonte disponível</option>}{options.sources.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}</select></label>
-      <label className="field-label">Cidade ou região<select className="ag-input" value={locationId} onChange={(event) => { clearResults(); setLocationId(event.target.value); setRadius("city"); }} disabled={!selectedSource}><option value="" disabled>Selecione uma região</option>{selectedSource?.locations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></label>
+      {openMap && <label className="field-label">Filtrar cidades do Brasil<input className="ag-input" type="search" maxLength={100} value={cityFilter} onChange={(event) => { clearResults(); setLocationId(""); setCityFilter(event.target.value); }} placeholder="Digite o nome da cidade ou UF" /><small>Busca local nos municípios do IBGE. Selecione a cidade abaixo; até 100 opções por filtro.</small></label>}<label className="field-label">Cidade ou região<select className="ag-input" value={locationId} onChange={(event) => { clearResults(); setLocationId(event.target.value); setRadius("city"); }} disabled={!selectedSource}><option value="" disabled>Selecione uma região</option>{visibleCities.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></label>
       <fieldset><legend className="field-label">Abrangência</legend><div className="radius-options">{(["city", 10, 25, 50] as const).map((value) => <label key={value} className={radius === value ? "is-selected" : ""}><input className="sr-only" type="radio" name="live-radius" checked={radius === value} disabled={value !== "city" && !selectedLocation?.radiusAvailable} onChange={() => { clearResults(); setRadius(value); }} /><span>{value === "city" ? "Cidade" : `${value} km`}</span></label>)}</div></fieldset>
-      <p className="filter-note">Cidade usa a associação declarada na fonte. Raio parte do centro cadastrado e pode cruzar municípios. Não usamos viés de localização.</p>{selectedLocation?.attributions.map((credit) => <small key={credit}>{credit}</small>)}
+      <p className="filter-note">{openMap ? "Todos os municípios do Brasil estão disponíveis para seleção. A busca usa a área cadastrada no OSM pelo código IBGE; pode faltar mapeamento. Raios não estão disponíveis nesta fonte." : "Cidade usa a associação declarada na fonte. Raio parte do centro cadastrado e pode cruzar municípios. Não usamos viés de localização."}</p>{selectedLocation?.attributions.map((credit) => <small key={credit}>{credit}</small>)}
       <Button type="submit" className="gold-button search-submit" disabled={loading || initializing || !selectedLocation}><Search size={18} aria-hidden="true" />Buscar empresas</Button>{initializing && <p role="status">Carregando fontes autorizadas…</p>}
       {!options.sources.length && !initializing && <Button variant="outline" onClick={() => { optionsController.current?.abort(); const controller = new AbortController(); optionsController.current = controller; setInitializing(true); void initialize(controller.signal); }}>Recarregar fontes</Button>}
       {loading && <Button variant="outline" onClick={cancel}>Cancelar busca</Button>}</form></section>
-      <Tabs value={view} onValueChange={setView} className="ag-panel map-panel"><div className="map-toolbar"><TabsList aria-label="Visualização dos resultados"><TabsTrigger value="map"><MapIcon size={15} aria-hidden="true" />Mapa</TabsTrigger><TabsTrigger value="list"><List size={15} aria-hidden="true" />Lista</TabsTrigger></TabsList></div><TabsContent value="map" className="map-tab-content">{view === "map" && items.length > 0 ? <SourceMap companies={filtered} selectedId={detailReference} onSelect={(reference) => void openDetails(reference)} attributions={page?.scopeAttributions ?? []} /> : <div className="map-placeholder"><MapPin size={34} aria-hidden="true" /><h2>Consulte os resultados na lista</h2><p>O mapa depende de um serviço permitido para este uso. Nenhum mapa externo foi carregado.</p><Button variant="outline" onClick={() => setView("list")}>Ver lista de resultados</Button></div>}</TabsContent><TabsContent value="list">{results}</TabsContent></Tabs>
+      <Tabs value={view} onValueChange={setView} className="ag-panel map-panel"><div className="map-toolbar"><TabsList aria-label="Visualização dos resultados"><TabsTrigger value="map"><MapIcon size={15} aria-hidden="true" />Mapa</TabsTrigger><TabsTrigger value="list"><List size={15} aria-hidden="true" />Lista</TabsTrigger></TabsList></div><TabsContent value="map" className="map-tab-content">{view === "map" && items.length > 0 ? <SourceMap companies={filtered} selectedId={detailReference} onSelect={(reference) => void openDetails(reference)} attributions={page?.scopeAttributions ?? []} cartography={openMap} /> : <div className="map-placeholder"><MapPin size={34} aria-hidden="true" /><h2>Consulte os resultados na lista</h2><p>{openMap ? "Escolha uma cidade e clique em Buscar empresas. O mapa gratuito carregará após a consulta, com os mesmos resultados da lista." : "O mapa depende de um serviço permitido para este uso. Nenhum mapa externo foi carregado."}</p><Button variant="outline" onClick={() => setView("list")}>Ver lista de resultados</Button></div>}</TabsContent><TabsContent value="list">{results}</TabsContent></Tabs>
 
     </div>{view === "map" && <div className="bottom-results">{results}</div>}
     </div><aside className="company-sidebar" aria-label="Empresa selecionada"><section className="ag-panel"><div className="panel-heading"><h2>Detalhes da empresa</h2>{detail && <Button variant="outline" size="icon" aria-label="Fechar detalhes da empresa" onClick={closeSelection}><X aria-hidden="true" /></Button>}</div>{detailBody}</section></aside>
