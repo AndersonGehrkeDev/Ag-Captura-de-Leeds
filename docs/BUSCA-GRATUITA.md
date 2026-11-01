@@ -52,4 +52,6 @@ Google continua bloqueado; Geoapify usa créditos. [Ohsome v2](https://heigit.or
 
 Testes direcionados de transporte, consulta/proveniência/cache/SQL e resolução local de malhas; CI essencial acrescenta oito casos sem rede externa. A consulta gratuita real Overture passou por opt-in local, inclusive projeção até o contrato da tela. Ela só roda com `AG_LIVE_OVERTURE_TEST=true`, ausente na CI. Conferência de publicação, mapa e CRM consta no acompanhamento após execução na hospedagem.
 
+**Produção conferida em 01/11/2026:** busca real com 20 resultados, mapa carregado, seleção por marcador/linha, detalhes mobile e referência salva/reaberta no CRM. Um Chromium em 1366 × 768 e 390 × 844; sem chamadas pagas. As capturas detectaram e levaram à correção do worker e da altura do canvas, sem ocultar os resultados anteriores. Isso valida a consulta controlada, não a cobertura de empresas em todos os municípios ou a disponibilidade futura das fontes.
+
 Rollback: desabilitar `OPEN_DATA_CATALOG_ENABLED` e redeployar ou promover o deployment anterior da Vercel; reverter commit no Git se necessário. Manter migrações aditivas e dados, sem reset/drop. Não há migração automática na CI.
