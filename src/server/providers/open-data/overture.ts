@@ -2,7 +2,7 @@ import "server-only";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DuckDBInstance } from "@duckdb/node-api";
+import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
 import { z } from "zod";
 import type { SearchRequest } from "@/domain/integrations/contracts";
 import { OpenDataError } from "./overpass";
@@ -48,11 +48,18 @@ export async function municipalityBounds(code: string, signal: AbortSignal): Pro
   return bounds;
 }
 export async function searchOverture(code: string, city: string, request: Pick<SearchRequest, "mode" | "term">, signal: AbortSignal): Promise<OpenCache> {
-  const bounds = await municipalityBounds(code, signal); const term = overtureTerm(request);
-  const directory = join(tmpdir(), "ag-overture-extensions"); await mkdir(directory, { recursive: true }); signal.throwIfAborted();
-  const instance = await DuckDBInstance.create(":memory:", { extension_directory: directory, memory_limit: "256MB", threads: "2" });
-  const connection = await instance.connect(); const stop = () => connection.interrupt(); signal.addEventListener("abort", stop, { once: true });
+  let phase = "geography";
+  let instance: DuckDBInstance | undefined; let connection: DuckDBConnection | undefined;
+  const stop = () => connection?.interrupt();
   try {
+    const bounds = await municipalityBounds(code, signal); const term = overtureTerm(request);
+    phase = "temporary_directory";
+    const directory = join(tmpdir(), "ag-overture-extensions"); await mkdir(directory, { recursive: true }); signal.throwIfAborted();
+    phase = "engine_create";
+    instance = await DuckDBInstance.create(":memory:", { extension_directory: directory, memory_limit: "256MB", threads: "2" });
+    phase = "engine_connect";
+    connection = await instance.connect(); signal.addEventListener("abort", stop, { once: true });
+    phase = "engine_setup";
     signal.throwIfAborted();
     await connection.run("INSTALL httpfs;LOAD httpfs;SET s3_region='us-west-2';SET s3_access_key_id='';SET s3_secret_access_key='';SET s3_session_token='';SET http_timeout=5;SET http_retries=0;");
     signal.throwIfAborted();
@@ -66,14 +73,17 @@ export async function searchOverture(code: string, city: string, request: Pick<S
       AND list_has_all(['meta','Microsoft','Overture'],list_transform(sources,lambda s:s.dataset))
       AND ($6='' OR regexp_matches(concat(basic_category,' ',taxonomy.primary,' ',array_to_string(taxonomy.hierarchy,' ')),$6))
       AND ($7='' OR contains(lower(strip_accents(names.primary)),$7)) LIMIT 61`;
+    phase = "data_query";
     const result = await connection.runAndReadAll(sql, [...bounds, city.split(" — ")[0]!, term.category, term.name]);
     signal.throwIfAborted();
+    phase = "data_projection";
     return normalizeOverture(result.getRowObjectsJson(), city, new Date().toISOString());
   } catch (error) {
     if (signal.aborted) throw error;
+    if (error instanceof OpenDataError) throw error;
     const message = error instanceof Error ? error.message : "";
     const diagnostic = error instanceof Error && error.name === "ZodError" ? "projection" : /extension|install/i.test(message) ? "duckdb_extension" : /memory/i.test(message) ? "duckdb_memory" : /SSL|certificate/i.test(message) ? "duckdb_tls" : /403/.test(message) ? "duckdb_http403" : /404/.test(message) ? "duckdb_http404" : /HTTP|IO Error|connect/i.test(message) ? "duckdb_network" : /Binder|Catalog|Parser/i.test(message) ? "duckdb_schema" : "duckdb_runtime";
-    throw new OpenDataError("provider_unavailable", undefined, diagnostic);
+    throw new OpenDataError("provider_unavailable", undefined, `${phase}_${diagnostic}`);
   }
-  finally { signal.removeEventListener("abort", stop); connection.closeSync(); instance.closeSync(); }
+  finally { signal.removeEventListener("abort", stop); connection?.closeSync(); instance?.closeSync(); }
 }

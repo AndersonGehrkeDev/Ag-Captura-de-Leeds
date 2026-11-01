@@ -7,7 +7,7 @@ import { openDataEnabled } from "./configuration";
 import { openDataRepository } from "./repository";
 import { openDataId, openRecordSchema, osmCredit, osmPolicyId, osmSourceId, overtureCredit, overturePolicyId, overtureSourceId, type OpenRecord } from "./model";
 
-export function buildOpenManifest(records: readonly OpenRecord[], workspaceId: string, reviewerId: string, origin: "osm" | "overture" = records[0]?.origin ?? "osm"): CatalogManifest {
+export function buildOpenManifest(records: readonly OpenRecord[], workspaceId: string, reviewerId: string, origin: "osm" | "overture" = records[0]?.origin ?? "osm", emptyCity = "Brasil"): CatalogManifest {
   const overture = origin === "overture"; const credit = overture ? overtureCredit : osmCredit;
   const reference = overture ? "overture:places:cdla" : "openstreetmap:businesses"; const licenseId = openDataId(`${workspaceId}:${origin}:license`); const ibgeLicenseId = openDataId(`${workspaceId}:ibge-license`); const provenance: ProvenanceRecord[] = [];
   const approvedAt = "2026-10-31T00:00:00Z";
@@ -27,7 +27,7 @@ export function buildOpenManifest(records: readonly OpenRecord[], workspaceId: s
   });
   const cities = [...new Set(records.map((r) => r.city))].slice(0, 200);
   // Sem cidades consultadas, a localização técnica mantém o manifest válido, mas não é oferecida pela busca nacional.
-  const locations = (cities.length ? cities : ["Brasil"]).map((city) => ({ id: openDataId(`cached-city:${city}`), city: { provenanceId: cityFact(city), value: city }, center: null }));
+  const locations = (cities.length ? cities : [emptyCity]).map((city) => ({ id: openDataId(`cached-city:${city}`), city: { provenanceId: cityFact(city), value: city }, center: null }));
   return catalogManifestSchema.parse({ version: 1, workspaces: [{ workspaceId, provenance, licenses: [{ id: licenseId, workspaceId, provider: "licensed", sourceReference: reference,
     evidenceReference: overture ? "https://docs.overturemaps.org/attribution/#places" : "https://www.openstreetmap.org/copyright", approvedBy: reviewerId, approvedAt, validUntil: "2027-10-31T23:59:59Z", revokedAt: null,
     purposes: ["prospecting", "crm"], fields: ["external_id", "name", "category", "website_url", "address", "city", "coordinates"],

@@ -59,6 +59,9 @@ describe("fonte aberta nacional, sem créditos", () => {
     if (!options.ok || !("sources" in options.data)) throw new Error("fixture");
     expect(options.data.sources[0]!.locations.length).toBeGreaterThan(5500);
     expect(options.data.sources[0]!.locations.some((city) => city.label === "São Paulo — SP")).toBe(true);
+    repository.mockResolvedValueOnce({ ...cached, records: [] });
+    expect(await executeOpenSearch({ operation: "search", workspaceId: workspace, request }, new AbortController().signal, { authorize, flags, repository, provider })).toMatchObject({ ok: true, data: { state: "empty", items: [] } });
+    expect(provider).not.toHaveBeenCalled();
   });
   it("cache/limite SQL são duráveis, isolados e exigem sessão e prova do backend", async () => {
     const { db } = await createTestDatabase(); const proof = "f".repeat(64);

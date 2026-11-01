@@ -20,8 +20,8 @@ export async function executeOpenSearch(command: SearchApiRequest & { operation:
     const origin = process.env.OPEN_DATA_PROVIDER === "overture" ? "overture" : "osm";
     const overture = origin === "overture"; const sourceId = overture ? overtureSourceId : osmSourceId;
     const reviewerId = z.uuid().parse(process.env.OPEN_DATA_REVIEWER_ID);
-    function governed(cache: Pick<OpenCache, "records">) {
-      const manifest = buildOpenManifest(cache.records, command.workspaceId, reviewerId, origin); const workspace = manifest.workspaces[0]!; const source = workspace.sources[0]!;
+    function governed(cache: Pick<OpenCache, "records">, emptyCity?: string) {
+      const manifest = buildOpenManifest(cache.records, command.workspaceId, reviewerId, origin, emptyCity); const workspace = manifest.workspaces[0]!; const source = workspace.sources[0]!;
       const policy: PolicyContext = { workspaceId: command.workspaceId, mode: "production", now: new Date(), flags: context.flags,
         provenance: new Map(workspace.provenance.map((r) => [r.id, r])), licenses: new Map(workspace.licenses.map((l) => [l.id, l])) };
       return { source, policy };
@@ -50,7 +50,7 @@ export async function executeOpenSearch(command: SearchApiRequest & { operation:
         cache = await provider(city.code, city.label, request, signal);
         signal.throwIfAborted();
         if (!await context.authorize(command.workspaceId)) return integrationFailure("access_denied");
-        const storing = governed(cache);
+        const storing = governed(cache, city.label);
         // Cache também é persistência: validar cada campo e todos os ancestrais antes de gravar.
         for (const company of storing.source.companies) {
           const ids = [company.reference.provenanceId, ...[company.name, company.category, company.website, company.address, company.city].flatMap((field) => field.state === "known" ? [field.data.provenanceId] : []), ...(company.coordinates ? [company.coordinates.provenanceId] : [])];
@@ -61,7 +61,7 @@ export async function executeOpenSearch(command: SearchApiRequest & { operation:
     }
     signal.throwIfAborted();
     if (cache.records.some((record) => record.origin !== origin)) return integrationFailure("permission_denied");
-    const { source, policy } = governed(cache);
+    const { source, policy } = governed(cache, city.label);
     if (!authorizeData(source.provenanceId, "display", "prospecting", policy).allowed) return integrationFailure("permission_denied");
     const signature = hash([key, cache.observedAt]); let offset = 0;
     if (request.cursor) {
@@ -80,7 +80,9 @@ export async function executeOpenSearch(command: SearchApiRequest & { operation:
   } catch (error) {
     if (!signal.aborted) {
       // Somente categorias fechadas/SQLSTATE, nunca erro bruto, URL, argumento RPC ou conteúdo externo.
-      const diagnostic = error instanceof OpenDataError ? error.diagnostic ?? error.code : error instanceof Error && /module|binding|shared object/i.test(error.message) ? "adapter_load" : "unexpected";
+      const supplied = error && typeof error === "object" && "diagnostic" in error && typeof error.diagnostic === "string" ? error.diagnostic : "";
+      const safeDiagnostic = /^(?:(?:geography|temporary_directory|engine_create|engine_connect|engine_setup|data_query|data_projection)_(?:projection|duckdb_extension|duckdb_memory|duckdb_tls|duckdb_http403|duckdb_http404|duckdb_network|duckdb_schema|duckdb_runtime)|ibge_http_[345]\d\d|db_[A-Z0-9]{5,12})$/.test(supplied) ? supplied : null;
+      const diagnostic = safeDiagnostic ?? (error instanceof OpenDataError ? error.code : error instanceof Error && error.name === "ZodError" ? "manifest_schema" : error instanceof Error && /module|binding|shared object/i.test(error.message) ? "adapter_load" : error instanceof SyntaxError ? "response_json" : "unexpected");
       console.warn(`ag_open_data_failure:${diagnostic}`);
     }
     const failure = integrationFailure(error instanceof OpenDataError ? error.code : signal.aborted ? signal.reason?.name === "TimeoutError" ? "timeout" : "cancelled" : "provider_unavailable");
